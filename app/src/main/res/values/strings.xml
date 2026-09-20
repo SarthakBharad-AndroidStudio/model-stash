@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Model Stash</string>
+    <!-- Shown in the toolbar in the Tanker font (all capitals by design) -->
+    <string name="app_name_display">MODEL STASH</string>
+    <string name="share_label">Add to Model Stash</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Home</string>
+    <string name="nav_catalogue">Catalogue</string>
+    <string name="add_model">Add model</string>
+
+    <!-- Appearance -->
+    <string name="appearance">Appearance</string>
+    <string name="appearance_dark">Midnight (dark)</string>
+    <string name="appearance_light">Paper (light)</string>
+    <string name="appearance_system">Follow system</string>
+
+    <!-- Dashboard -->
+    <string name="your_stash">Your stash</string>
+    <plurals name="models_in_stash">
+        <item quantity="one">model catalogued</item>
+        <item quantity="other">models catalogued</item>
+    </plurals>
+    <string name="stat_brands">Brands</string>
+    <string name="stat_top_scale">Top scale</string>
+    <string name="stat_recent">Last 30 days</string>
+    <string name="stat_none">–</string>
+    <string name="recently_added">Recently added</string>
+    <string name="see_all">See all</string>
+    <string name="empty_title">Your stash is empty</string>
+    <string name="empty_body">Add the kits on your shelf and they\'ll show up here.</string>
+    <string name="empty_action">Add your first kit</string>
+    <string name="added_ago">Added %1$s</string>
+
+    <!-- Catalogue / search -->
+    <string name="search_hint">Search your stash</string>
+    <string name="sort_name">A–Z</string>
+    <string name="sort_newest">Newest</string>
+    <string name="sort_scale">Scale</string>
+    <plurals name="catalogue_total">
+        <item quantity="one">You own %1$d model</item>
+        <item quantity="other">You own %1$d models</item>
+    </plurals>
+    <string name="status_owned">You own “%1$s”</string>
+    <string name="status_not_owned">You don\'t own “%1$s” yet</string>
+    <plurals name="status_partial_matches">
+        <item quantity="one">%1$d model matches “%2$s”</item>
+        <item quantity="other">%1$d models match “%2$s”</item>
+    </plurals>
+    <string name="add_searched">Add it</string>
+
+    <!-- Add / edit -->
+    <string name="title_add_model">New model</string>
+    <string name="title_edit_model">Edit model</string>
+    <string name="scalemates_heading">Import from Scalemates</string>
+    <string name="scalemates_subtitle">Optional: fills in name, brand and scale</string>
+    <string name="scalemates_hint">Scalemates kit link</string>
+    <string name="scalemates_helper">Paste a link, or use Share → Model Stash in your browser</string>
+    <string name="fetch_details">Fetch details</string>
+    <string name="fetched_check_details">Filled in from Scalemates. Check the details and add your own photo.</string>
+    <string name="photo_empty">Add a photo of the box or your build</string>
+    <string name="take_photo">Camera</string>
+    <string name="choose_photo">Gallery</string>
+    <string name="remove_photo">Remove</string>
+    <string name="model_photo">Model photo</string>
+    <string name="details">Details</string>
+    <string name="name_hint">Name *</string>
+    <string name="scale_hint">Scale, e.g. 1:72</string>
+    <string name="scale_helper">Size compared to the real thing</string>
+    <string name="brand_hint">Brand (optional)</string>
+    <string name="description_hint">Description (optional)</string>
+    <string name="save">Save to stash</string>
+    <string name="save_changes">Save changes</string>
+    <string name="error_name_required">Give the model a name</string>
+    <string name="error_scale">Use a scale like 1:72, 1/72 or 72</string>
+    <string name="error_not_scalemates">That isn\'t a Scalemates kit link (scalemates.com/kits/…)</string>
+    <string name="error_no_camera">No camera app found</string>
+    <string name="error_photo_copy">Couldn\'t load that photo</string>
+
+    <!-- Detail -->
+    <string name="title_details">Model details</string>
+    <string name="added_on">Added on %1$s</string>
+    <string name="description_label">About this kit</string>
+    <string name="view_on_scalemates">View on Scalemates</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete_title">Delete “%1$s”?</string>
+    <string name="delete_message">The model and its photo will be removed from your stash. This can\'t be undone.</string>
+
+    <string name="nav_wishlist">Wishlist</string>
+    <string name="add_to_wishlist">Add to wishlist</string>
+    <string name="title_add_wish">New wish</string>
+    <string name="save_to_wishlist">Save to wishlist</string>
+
+    <plurals name="wishlist_count">
+        <item quantity="one">%1$d kit you want</item>
+        <item quantity="other">%1$d kits you want</item>
+    </plurals>
+    <string name="wishlist_empty_title">Nothing on your wishlist</string>
+    <string name="wishlist_empty_body">Kits you\'d like to buy live here, kept apart from the ones you own.</string>
+    <string name="wishlist_empty_action">Add a kit you want</string>
+    <string name="move_to_stash">I bought it — move to my stash</string>
+    <string name="moved_to_stash">Moved to your stash</string>
+</resources>

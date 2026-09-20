@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One theme for both modes: every colour points at @color/c_*, and
+    values-night/colors.xml swaps those for the dark palette.
+-->
+<resources>
+
+    <style name="Base.Theme.ModelStash" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Colours -->
+        <item name="colorPrimary">@color/c_primary</item>
+        <item name="colorOnPrimary">@color/c_on_primary</item>
+        <item name="colorPrimaryContainer">@color/c_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/c_on_primary_container</item>
+        <item name="colorSecondary">@color/c_secondary</item>
+        <item name="colorOnSecondary">@color/c_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/c_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/c_on_secondary_container</item>
+        <item name="colorTertiary">@color/c_secondary</item>
+        <item name="colorOnTertiary">@color/c_on_secondary</item>
+        <item name="colorError">@color/c_error</item>
+        <item name="colorOnError">@color/c_on_error</item>
+        <item name="colorErrorContainer">@color/c_error_container</item>
+        <item name="colorOnErrorContainer">@color/c_on_error_container</item>
+
+        <item name="android:colorBackground">@color/c_background</item>
+        <item name="colorOnBackground">@color/c_on_background</item>
+        <item name="colorSurface">@color/c_background</item>
+        <item name="colorOnSurface">@color/c_on_surface</item>
+        <item name="colorSurfaceVariant">@color/c_surface_high</item>
+        <item name="colorOnSurfaceVariant">@color/c_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/c_surface_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/c_surface_low</item>
+        <item name="colorSurfaceContainer">@color/c_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/c_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/c_surface_highest</item>
+        <item name="colorOutline">@color/c_outline</item>
+        <item name="colorOutlineVariant">@color/c_outline_variant</item>
+        <item name="colorControlNormal">@color/c_on_surface</item>
+
+        <!-- Fonts: Satoshi everywhere unless a text appearance says otherwise -->
+        <item name="android:textViewStyle">@style/Widget.ModelStash.TextView</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.ModelStash.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.ModelStash.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.ModelStash.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.ModelStash.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.ModelStash.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.ModelStash.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.ModelStash.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.ModelStash.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.ModelStash.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.ModelStash.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.ModelStash.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.ModelStash.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.ModelStash.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.ModelStash.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.ModelStash.LabelSmall</item>
+
+        <!-- Component defaults -->
+        <item name="toolbarStyle">@style/Widget.ModelStash.Toolbar</item>
+        <item name="materialCardViewStyle">@style/Widget.ModelStash.Card</item>
+        <item name="textInputStyle">@style/Widget.ModelStash.TextField</item>
+        <item name="bottomNavigationStyle">@style/Widget.ModelStash.BottomNav</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.ModelStash.Dialog</item>
+    </style>
+
+    <!-- Plain text defaults to Satoshi; a textAppearance can still switch it to Boska or Tanker -->
+    <style name="Widget.ModelStash.TextView" parent="Widget.MaterialComponents.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.ModelStash.BodyMedium</item>
+    </style>
+
+    <style name="Theme.ModelStash" parent="Base.Theme.ModelStash" />
+
+    <!-- Splash screen (Android 12+ style, back-ported by core-splashscreen) -->
+    <style name="Theme.ModelStash.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_midnight</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.ModelStash</item>
+    </style>
+
+    <!-- Components -->
+    <style name="Widget.ModelStash.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="titleTextAppearance">@style/TextAppearance.ModelStash.TitleLarge</item>
+        <item name="titleTextColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.ModelStash.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="android:stateListAnimator">@animator/press_scale</item>
+    </style>
+
+    <style name="Widget.ModelStash.TextField" parent="Widget.Material3.TextInputLayout.FilledBox">
+        <item name="boxBackgroundColor">?attr/colorSurfaceContainer</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+        <item name="boxCornerRadiusTopStart">16dp</item>
+        <item name="boxCornerRadiusTopEnd">16dp</item>
+        <item name="boxCornerRadiusBottomStart">16dp</item>
+        <item name="boxCornerRadiusBottomEnd">16dp</item>
+    </style>
+
+    <!-- Pill-shaped search bar -->
+    <style name="Widget.ModelStash.SearchField" parent="Widget.ModelStash.TextField">
+        <item name="boxBackgroundColor">?attr/colorSurfaceContainerHigh</item>
+        <item name="boxCornerRadiusTopStart">28dp</item>
+        <item name="boxCornerRadiusTopEnd">28dp</item>
+        <item name="boxCornerRadiusBottomStart">28dp</item>
+        <item name="boxCornerRadiusBottomEnd">28dp</item>
+    </style>
+
+    <style name="Widget.ModelStash.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">?attr/colorSurfaceContainerLow</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.ModelStash.NavIndicator</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.ModelStash.LabelMedium</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.ModelStash.LabelMedium</item>
+    </style>
+
+    <style name="Widget.ModelStash.NavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">?attr/colorSecondaryContainer</item>
+    </style>
+
+    <style name="ThemeOverlay.ModelStash.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurfaceContainerHigh">@color/c_surface</item>
+    </style>
+</resources>

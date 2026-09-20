@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DARK MODE palette ("Midnight"), the app's default. Built only from the
+    four brand colours plus tints of them.
+-->
+<resources>
+    <color name="c_background">#010736</color>
+    <color name="c_on_background">#FCF1D0</color>
+    <color name="c_surface_lowest">#010736</color>
+    <color name="c_surface_low">#06103C</color>
+    <color name="c_surface">#0D1C42</color>
+    <color name="c_surface_high">#16295A</color>
+    <color name="c_surface_highest">#22396F</color>
+    <color name="c_on_surface">#FCF1D0</color>
+    <color name="c_on_surface_variant">#B1ABA2</color>
+    <color name="c_outline">#4A6399</color>
+    <color name="c_outline_variant">#22396F</color>
+
+    <color name="c_primary">#FCF1D0</color>
+    <color name="c_on_primary">#010736</color>
+    <color name="c_primary_container">#22396F</color>
+    <color name="c_on_primary_container">#FCF1D0</color>
+    <color name="c_secondary">#A9B6DA</color>
+    <color name="c_on_secondary">#010736</color>
+    <color name="c_secondary_container">#22396F</color>
+    <color name="c_on_secondary_container">#FCF1D0</color>
+
+    <color name="c_error">#FF8A7A</color>
+    <color name="c_on_error">#010736</color>
+    <color name="c_error_container">#4A1622</color>
+    <color name="c_on_error_container">#FFDAD4</color>
+
+    <color name="c_owned">#9FE0B8</color>
+    <color name="c_owned_container">#123A3A</color>
+
+    <color name="c_scrim_start">#00010736</color>
+</resources>

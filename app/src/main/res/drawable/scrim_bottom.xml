@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fades the bottom of the detail photo into the page background. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="@color/c_background"
+        android:startColor="@color/c_scrim_start"
+        android:type="linear" />
+</shape>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Model Stash logo, foreground layer of the adaptive launcher icon (also the splash icon). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Sprue frame (the plastic frame model parts come on) -->
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M40.00,28.00 H68.00 A12.00,12.00 0 0 1 80.00,40.00 V68.00 A12.00,12.00 0 0 1 68.00,80.00 H40.00 A12.00,12.00 0 0 1 28.00,68.00 V40.00 A12.00,12.00 0 0 1 40.00,28.00 Z M40.00,32.40 H68.00 A7.60,7.60 0 0 1 75.60,40.00 V68.00 A7.60,7.60 0 0 1 68.00,75.60 H40.00 A7.60,7.60 0 0 1 32.40,68.00 V40.00 A7.60,7.60 0 0 1 40.00,32.40 Z" />
+    <!-- Gates: the thin plastic stubs holding the part on the sprue -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M69.77,60.03 L76.40,60.93 L76.40,57.73 L69.77,58.63 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M38.23,58.63 L31.60,57.73 L31.60,60.93 L38.23,60.03 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M53.30,69.43 L52.40,76.40 L55.60,76.40 L54.70,69.43 Z" />
+    <!-- The part: a jet, still waiting in the stash -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M54.00,32.06 L55.84,37.46 L56.70,46.10 L70.20,57.44 L70.20,61.22 L56.70,58.20 L56.05,63.92 L61.34,68.35 L61.34,70.94 L54.00,69.21 L46.66,70.94 L46.66,68.35 L51.95,63.92 L51.30,58.20 L37.80,61.22 L37.80,57.44 L51.30,46.10 L52.16,37.46 Z" />
+</vector>
