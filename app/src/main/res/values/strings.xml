@@ -53,7 +53,7 @@
     <string name="title_add_model">New model</string>
     <string name="title_edit_model">Edit model</string>
     <string name="scalemates_heading">Import from Scalemates</string>
-    <string name="scalemates_subtitle">Optional: fills in name, brand and scale</string>
+    <string name="scalemates_subtitle">Optional: fills in name, number, brand and scale</string>
     <string name="scalemates_hint">Scalemates kit link</string>
     <string name="scalemates_helper">Paste a link, or use Share → Model Stash in your browser</string>
     <string name="fetch_details">Fetch details</string>
@@ -68,6 +68,8 @@
     <string name="scale_hint">Scale, e.g. 1:72</string>
     <string name="scale_helper">Size compared to the real thing</string>
     <string name="brand_hint">Brand (optional)</string>
+    <string name="kit_number_hint">Kit number (optional)</string>
+    <string name="kit_number_chip">#%1$s</string>
     <string name="description_hint">Description (optional)</string>
     <string name="save">Save to stash</string>
     <string name="save_changes">Save changes</string>
@@ -102,4 +104,12 @@
     <string name="wishlist_empty_action">Add a kit you want</string>
     <string name="move_to_stash">I bought it — move to my stash</string>
     <string name="moved_to_stash">Moved to your stash</string>
+
+    <string name="import_csv">Import CSV</string>
+    <plurals name="import_done">
+        <item quantity="one">Imported %1$d kit</item>
+        <item quantity="other">Imported %1$d kits</item>
+    </plurals>
+    <string name="import_empty">No kits found in that file</string>
+    <string name="import_failed">Couldn\'t read that file</string>
 </resources>

@@ -21,6 +21,10 @@ public interface ModelDao {
     @Insert
     long insert(ModelKit model);
 
+    /** Bulk insert for the CSV import. */
+    @Insert
+    List<Long> insertAll(List<ModelKit> models);
+
     @Update
     void update(ModelKit model);
 
@@ -38,8 +42,13 @@ public interface ModelDao {
     @Query("SELECT * FROM models WHERE wishlist = 0 ORDER BY name COLLATE NOCASE")
     LiveData<List<ModelKit>> getAll();
 
-    /** Name contains the query (case-insensitive). The query must already be LIKE-escaped. */
-    @Query("SELECT * FROM models WHERE wishlist = 0 AND name LIKE '%' || :query || '%' ESCAPE '\\' "
+    /**
+     * Name or kit number contains the query (case-insensitive), so "32571" finds a kit
+     * as well as its name does. The query must already be LIKE-escaped.
+     */
+    @Query("SELECT * FROM models WHERE wishlist = 0 "
+            + "AND (name LIKE '%' || :query || '%' ESCAPE '\\' "
+            + "OR kit_number LIKE '%' || :query || '%' ESCAPE '\\') "
             + "ORDER BY name COLLATE NOCASE")
     LiveData<List<ModelKit>> searchByName(String query);
 

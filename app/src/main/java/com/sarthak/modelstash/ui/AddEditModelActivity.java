@@ -70,6 +70,7 @@ public class AddEditModelActivity extends AppCompatActivity {
     private TextInputEditText nameInput;
     private TextInputEditText scaleInput;
     private TextInputEditText brandInput;
+    private TextInputEditText kitNumberInput;
     private TextInputEditText descriptionInput;
     private ImageView photoView;
     private MaterialButton removePhotoButton;
@@ -138,6 +139,7 @@ public class AddEditModelActivity extends AppCompatActivity {
         nameInput = findViewById(R.id.input_name);
         scaleInput = findViewById(R.id.input_scale);
         brandInput = findViewById(R.id.input_brand);
+        kitNumberInput = findViewById(R.id.input_kit_number);
         descriptionInput = findViewById(R.id.input_description);
         photoView = findViewById(R.id.image_photo);
         removePhotoButton = findViewById(R.id.button_remove_photo);
@@ -258,6 +260,7 @@ public class AddEditModelActivity extends AppCompatActivity {
         nameInput.setText(model.name);
         scaleInput.setText(model.scale);
         brandInput.setText(model.brand);
+        kitNumberInput.setText(model.kitNumber);
         descriptionInput.setText(model.description);
         linkInput.setText(model.sourceUrl);
         setScalematesOpen(model.sourceUrl != null);
@@ -273,6 +276,9 @@ public class AddEditModelActivity extends AppCompatActivity {
         }
         if (info.brand != null) {
             brandInput.setText(info.brand);
+        }
+        if (info.kitNumber != null) {
+            kitNumberInput.setText(info.kitNumber);
         }
         String summary = info.summaryLine();
         if (!summary.isEmpty() && text(descriptionInput).isEmpty()) {
@@ -399,6 +405,7 @@ public class AddEditModelActivity extends AppCompatActivity {
         model.name = name;
         model.scale = emptyToNull(scale);
         model.brand = emptyToNull(text(brandInput));
+        model.kitNumber = emptyToNull(text(kitNumberInput));
         model.description = emptyToNull(text(descriptionInput));
         model.photoPath = photoPath;
         model.sourceUrl = ScalematesParser.extractKitUrl(text(linkInput));

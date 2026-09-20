@@ -24,6 +24,11 @@ public class ModelKit {
     @Nullable
     public String brand;
 
+    /** The manufacturer's catalogue number, e.g. "32571". Optional. */
+    @Nullable
+    @ColumnInfo(name = "kit_number")
+    public String kitNumber;
+
     @Nullable
     public String description;
 

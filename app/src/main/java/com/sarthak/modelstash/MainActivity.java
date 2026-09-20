@@ -4,17 +4,22 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.net.Uri;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.fragment.app.Fragment;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
+
 import com.sarthak.modelstash.ui.AddEditModelActivity;
 import com.sarthak.modelstash.ui.CatalogueFragment;
 import com.sarthak.modelstash.ui.DashboardFragment;
@@ -22,6 +27,16 @@ import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
 import com.sarthak.modelstash.util.ThemePrefs;
 import com.sarthak.modelstash.ui.WishlistFragment;
+import com.sarthak.modelstash.data.AppDatabase;
+import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.data.ModelRepository;
+import com.sarthak.modelstash.util.CsvImport;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /** Home screen: toolbar with logo, the current tab, the "Add model" button and the bottom bar. */
 public class MainActivity extends AppCompatActivity {
@@ -30,6 +45,14 @@ public class MainActivity extends AppCompatActivity {
     private ExtendedFloatingActionButton fab;
     /** True while the Wishlist tab is showing: the + button then adds a wanted kit. */
     private boolean onWishlistTab;
+
+    /** Opens the system file picker for a CSV to import. */
+    private final ActivityResultLauncher<String[]> pickCsv =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) {
+                    importCsv(uri);
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +93,11 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_appearance) {
             chooseAppearance();
+            return true;
+        }
+        if (item.getItemId() == R.id.action_import) {
+            // Some file managers label CSVs as plain text, so accept both.
+            pickCsv.launch(new String[]{"text/csv", "text/comma-separated-values", "text/plain", "*/*"});
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -116,6 +144,42 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container, fragment)
                 .commit();
         fab.extend();
+    }
+
+    /** Reads the chosen CSV in the background and adds every row it understands. */
+    private void importCsv(Uri uri) {
+        AppDatabase.IO.execute(() -> {
+            String csv;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) {
+                    throw new IOException("Could not open the file");
+                }
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                csv = out.toString(StandardCharsets.UTF_8.name());
+            } catch (IOException e) {
+                runOnUiThread(() -> showImportMessage(getString(R.string.import_failed)));
+                return;
+            }
+            // Importing on the Wishlist tab fills the wishlist; anywhere else, the catalogue.
+            List<ModelKit> models = CsvImport.parse(csv, onWishlistTab);
+            runOnUiThread(() -> {
+                if (models.isEmpty()) {
+                    showImportMessage(getString(R.string.import_empty));
+                    return;
+                }
+                ModelRepository.get(this).importAll(models, added -> showImportMessage(
+                        getResources().getQuantityString(R.plurals.import_done, added, added)));
+            });
+        });
+    }
+
+    private void showImportMessage(String message) {
+        Snackbar.make(findViewById(R.id.main), message, Snackbar.LENGTH_LONG).show();
     }
 
     private void chooseAppearance() {

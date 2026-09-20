@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** The app's single SQLite database file, "model_stash.db". */
-@Database(entities = {ModelKit.class}, version = 2, exportSchema = false)
+@Database(entities = {ModelKit.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** Background threads for database writes and file work (never block the UI thread). */
@@ -30,6 +30,14 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** Version 3 added the kit number. Existing rows get NULL, which means "not set". */
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE models ADD COLUMN kit_number TEXT");
+        }
+    };
+
     private static volatile AppDatabase instance;
 
     public abstract ModelDao modelDao();
@@ -40,7 +48,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "model_stash.db")
-                            .addMigrations(MIGRATION_1_2)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                             .build();
                 }
             }

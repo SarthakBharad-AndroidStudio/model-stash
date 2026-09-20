@@ -97,6 +97,23 @@ public class ModelRepository {
         });
     }
 
+    /**
+     * Adds many models at once (CSV import). They are timestamped in file order,
+     * so the last row is the newest. onDone gets the number added, on the main thread.
+     */
+    public void importAll(List<ModelKit> models, @Nullable Consumer<Integer> onDone) {
+        AppDatabase.IO.execute(() -> {
+            long now = System.currentTimeMillis();
+            for (int i = 0; i < models.size(); i++) {
+                models.get(i).createdAt = now - (models.size() - 1 - i) * 1000L;
+            }
+            int added = dao.insertAll(models).size();
+            if (onDone != null) {
+                mainThread.post(() -> onDone.accept(added));
+            }
+        });
+    }
+
     /** Bought it: moves a wishlist model into the owned catalogue. */
     public void moveToStash(ModelKit model, @Nullable Runnable onDone) {
         model.wishlist = false;

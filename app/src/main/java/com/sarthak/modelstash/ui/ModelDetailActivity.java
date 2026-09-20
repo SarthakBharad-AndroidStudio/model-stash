@@ -89,6 +89,7 @@ public class ModelDetailActivity extends AppCompatActivity {
         TextView name = findViewById(R.id.text_name);
         Chip scaleChip = findViewById(R.id.chip_scale);
         Chip brandChip = findViewById(R.id.chip_brand);
+        Chip numberChip = findViewById(R.id.chip_number);
         TextView added = findViewById(R.id.text_added);
         View descriptionCard = findViewById(R.id.card_description);
         TextView description = findViewById(R.id.text_description);
@@ -125,6 +126,9 @@ public class ModelDetailActivity extends AppCompatActivity {
             scaleChip.setVisibility(model.scale != null ? View.VISIBLE : View.GONE);
             brandChip.setText(model.brand);
             brandChip.setVisibility(model.brand != null ? View.VISIBLE : View.GONE);
+            boolean hasNumber = model.kitNumber != null;
+            numberChip.setText(hasNumber ? getString(R.string.kit_number_chip, model.kitNumber) : "");
+            numberChip.setVisibility(hasNumber ? View.VISIBLE : View.GONE);
 
             added.setText(getString(R.string.added_on,
                     DateFormat.getDateInstance(DateFormat.LONG).format(new Date(model.createdAt))));
