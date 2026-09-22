@@ -4,13 +4,20 @@ An Android app for keeping track of the scale model kits you own — and the one
 
 Built because "do I already have this one?" is a hard question to answer while standing in a hobby shop.
 
-<!-- Add a screenshot or two here once you have them:
-<p align="center">
-  <img src="docs/dashboard.png" width="260">
-  <img src="docs/catalogue.png" width="260">
-  <img src="docs/detail.png" width="260">
-</p>
--->
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/dashboard.png" width="240"><br><sub>Dashboard</sub></td>
+    <td align="center"><img src="docs/catalogue.png" width="240"><br><sub>Catalogue &amp; search</sub></td>
+    <td align="center"><img src="docs/detail.png" width="240"><br><sub>Kit detail</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/wishlist.png" width="240"><br><sub>Wishlist</sub></td>
+    <td align="center"><img src="docs/add.png" width="240"><br><sub>Adding a kit</sub></td>
+    <td align="center"><img src="docs/light.png" width="240"><br><sub>Light theme</sub></td>
+  </tr>
+</table>
 
 ## Features
 
