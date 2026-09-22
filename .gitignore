@@ -1,7 +1,64 @@
-/build
-/app/build
-/.idea
+# Gradle
+.gradle/
+build/
+/app/build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Android build output
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+/captures/
+
+# Local configuration — machine-specific, never commit
 local.properties
+.externalNativeBuild/
+.cxx/
+
+# Signing keys — never commit
 *.jks
 *.keystore
-/app/release/
+keystore.properties
+signing.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+.navigation/
+freeline/
+freeline_project_description.json
+
+# VS Code
+.vscode/
+
+# NDK
+obj/
+
+# Logs and profiling
+*.log
+*.hprof
+
+# Lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint/reports/
+
+# Kotlin (harmless to keep even in a Java project)
+.kotlin/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
