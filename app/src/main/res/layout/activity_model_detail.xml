@@ -100,6 +100,15 @@
                     android:layout_height="wrap_content"
                     android:clickable="false"
                     android:focusable="false" />
+
+                <!-- The only chip you can tap: it opens the status picker. -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_status"
+                    style="@style/Widget.Material3.Chip.Assist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipIcon="@drawable/ic_edit"
+                    app:chipIconSize="16dp" />
             </com.google.android.material.chip.ChipGroup>
 
             <TextView

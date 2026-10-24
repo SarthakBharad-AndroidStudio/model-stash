@@ -1,5 +1,6 @@
 package com.sarthak.modelstash.ui;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.util.BuildStatus;
 
 import java.io.File;
 import java.util.Objects;
@@ -69,6 +71,19 @@ public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder>
         return model.brand != null ? model.brand : "";
     }
 
+    /**
+     * The card's second line. The build stage is added only once it is past Unbuilt,
+     * so a shelf full of untouched kits doesn't repeat the same word on every card.
+     */
+    public static String meta(Context context, ModelKit model) {
+        String base = scaleAndBrand(model);
+        if (model.wishlist || BuildStatus.clamp(model.buildStatus) == BuildStatus.UNBUILT) {
+            return base;
+        }
+        String stage = context.getString(BuildStatus.label(model.buildStatus));
+        return base.isEmpty() ? stage : base + " · " + stage;
+    }
+
     /** The same name on the card's photo and the detail screen's photo links the two for the animation. */
     public static String photoTransitionName(long modelId) {
         return "model_photo_" + modelId;
@@ -98,7 +113,7 @@ public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder>
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ModelKit model = getItem(position);
         holder.name.setText(model.name);
-        String meta = scaleAndBrand(model);
+        String meta = meta(holder.itemView.getContext(), model);
         holder.meta.setText(meta);
         holder.meta.setVisibility(meta.isEmpty() ? View.INVISIBLE : View.VISIBLE);
         ViewCompat.setTransitionName(holder.photo, photoTransitionName(model.id));

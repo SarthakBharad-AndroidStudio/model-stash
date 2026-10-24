@@ -25,6 +25,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.sarthak.modelstash.MainActivity;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.ModelSort;
 
@@ -39,6 +40,8 @@ public class CatalogueFragment extends Fragment {
     private TextView statusText;
     private MaterialButton addButton;
     private boolean listAnimated;
+    /** Everything you own, so a filtered count can say "showing 4 of 46". */
+    private int totalOwned;
 
     public CatalogueFragment() {
         super(R.layout.fragment_catalogue);
@@ -51,6 +54,7 @@ public class CatalogueFragment extends Fragment {
 
         TextInputEditText searchInput = view.findViewById(R.id.input_search);
         ChipGroup sortChips = view.findViewById(R.id.chips_sort);
+        ChipGroup stageChips = view.findViewById(R.id.chips_stage);
         statusCard = view.findViewById(R.id.card_status);
         statusIcon = view.findViewById(R.id.icon_status);
         statusText = view.findViewById(R.id.text_status);
@@ -98,6 +102,20 @@ public class CatalogueFragment extends Fragment {
             grid.scrollToPosition(0);
         });
 
+        // Build-stage filter. The dashboard can set this before switching tabs,
+        // so the chips follow the view model rather than the other way round.
+        stageChips.check(stageChipFor(viewModel.getStatusFilter()));
+        stageChips.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) {
+                return;
+            }
+            Haptics.tick(group);
+            viewModel.setStatusFilter(statusFor(checkedIds.get(0)));
+            grid.scrollToPosition(0);
+        });
+
+        viewModel.stats.observe(getViewLifecycleOwner(), stats -> totalOwned = stats.total);
+
         addButton.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), AddEditModelActivity.class);
             intent.putExtra(AddEditModelActivity.EXTRA_PREFILL_NAME, viewModel.getQuery().trim());
@@ -126,6 +144,32 @@ public class CatalogueFragment extends Fragment {
         }
     }
 
+    private static int stageChipFor(int status) {
+        switch (status) {
+            case BuildStatus.UNBUILT:
+                return R.id.chip_stage_unbuilt;
+            case BuildStatus.IN_BUILD:
+                return R.id.chip_stage_in_build;
+            case BuildStatus.COMPLETED:
+                return R.id.chip_stage_completed;
+            default:
+                return R.id.chip_stage_all;
+        }
+    }
+
+    private static int statusFor(int chipId) {
+        if (chipId == R.id.chip_stage_unbuilt) {
+            return BuildStatus.UNBUILT;
+        }
+        if (chipId == R.id.chip_stage_in_build) {
+            return BuildStatus.IN_BUILD;
+        }
+        if (chipId == R.id.chip_stage_completed) {
+            return BuildStatus.COMPLETED;
+        }
+        return MainViewModel.STATUS_ANY;
+    }
+
     private static ModelSort.Mode modeFor(int chipId) {
         if (chipId == R.id.chip_sort_newest) {
             return ModelSort.Mode.NEWEST;
@@ -141,7 +185,11 @@ public class CatalogueFragment extends Fragment {
         String query = viewModel.getQuery().trim();
 
         if (query.isEmpty()) {
-            statusText.setText(getResources().getQuantityString(
+            boolean filtered = viewModel.getStatusFilter() != MainViewModel.STATUS_ANY;
+            statusText.setText(filtered
+                    ? getString(R.string.catalogue_filtered, results.size(),
+                    Math.max(totalOwned, results.size()))
+                    : getResources().getQuantityString(
                     R.plurals.catalogue_total, results.size(), results.size()));
             paintStatus(MaterialColors.getColor(statusCard,
                             com.google.android.material.R.attr.colorSurfaceContainer),

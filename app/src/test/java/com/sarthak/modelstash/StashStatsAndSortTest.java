@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.ModelSort;
 import com.sarthak.modelstash.util.ScaleFormat;
 import com.sarthak.modelstash.util.StashStats;
@@ -47,12 +48,38 @@ public class StashStatsAndSortTest {
     }
 
     @Test
+    public void statsCountWhatIsStartedAndFinished() {
+        List<ModelKit> stash = new ArrayList<>(sampleStash());
+        stash.get(0).buildStatus = BuildStatus.COMPLETED;
+        stash.get(1).buildStatus = BuildStatus.IN_BUILD;
+        stash.get(2).buildStatus = BuildStatus.COMPLETED;
+        // the last two keep the default, UNBUILT
+
+        StashStats stats = StashStats.from(stash, NOW);
+        assertEquals(2, stats.completed);
+        assertEquals(1, stats.inBuild);
+        assertEquals(5, stats.total);
+    }
+
+    @Test
+    public void anUnknownStatusCountsAsUnbuilt() {
+        List<ModelKit> stash = new ArrayList<>(sampleStash());
+        stash.get(0).buildStatus = 99; // written by some future version
+        StashStats stats = StashStats.from(stash, NOW);
+        assertEquals(0, stats.completed);
+        assertEquals(0, stats.inBuild);
+        assertEquals(BuildStatus.UNBUILT, BuildStatus.clamp(99));
+    }
+
+    @Test
     public void statsOfAnEmptyStash() {
         StashStats stats = StashStats.from(new ArrayList<>(), NOW);
         assertEquals(0, stats.total);
         assertEquals(0, stats.brands);
         assertNull(stats.topScale);
         assertEquals(0, stats.addedLast30Days);
+        assertEquals(0, stats.inBuild);
+        assertEquals(0, stats.completed);
     }
 
     @Test

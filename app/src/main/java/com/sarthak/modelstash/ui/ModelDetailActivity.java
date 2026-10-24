@@ -27,13 +27,14 @@ import com.bumptech.glide.request.target.Target;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
 import com.sarthak.modelstash.data.ModelRepository;
+import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
 
@@ -90,10 +91,11 @@ public class ModelDetailActivity extends AppCompatActivity {
         Chip scaleChip = findViewById(R.id.chip_scale);
         Chip brandChip = findViewById(R.id.chip_brand);
         Chip numberChip = findViewById(R.id.chip_number);
+        Chip statusChip = findViewById(R.id.chip_status);
         TextView added = findViewById(R.id.text_added);
         View descriptionCard = findViewById(R.id.card_description);
         TextView description = findViewById(R.id.text_description);
-        View scalematesButton = findViewById(R.id.button_scalemates);
+        MaterialButton scalematesButton = findViewById(R.id.button_scalemates);
         MaterialButton moveButton = findViewById(R.id.button_move_to_stash);
         ExtendedFloatingActionButton editButton = findViewById(R.id.fab_edit);
         InsetsHelper.liftAboveNavigationBar(editButton);
@@ -126,6 +128,11 @@ public class ModelDetailActivity extends AppCompatActivity {
             scaleChip.setVisibility(model.scale != null ? View.VISIBLE : View.GONE);
             brandChip.setText(model.brand);
             brandChip.setVisibility(model.brand != null ? View.VISIBLE : View.GONE);
+            // Owned kits carry a build status; wishlist kits don't.
+            statusChip.setVisibility(model.wishlist ? View.GONE : View.VISIBLE);
+            statusChip.setText(BuildStatus.label(model.buildStatus));
+            statusChip.setOnClickListener(v -> chooseStatus(model));
+
             boolean hasNumber = model.kitNumber != null;
             numberChip.setText(hasNumber ? getString(R.string.kit_number_chip, model.kitNumber) : "");
             numberChip.setVisibility(hasNumber ? View.VISIBLE : View.GONE);
@@ -136,12 +143,33 @@ public class ModelDetailActivity extends AppCompatActivity {
             description.setText(model.description);
             descriptionCard.setVisibility(model.description != null ? View.VISIBLE : View.GONE);
 
+            // Only shown when you have added a link yourself; the app never looks one up.
             scalematesButton.setVisibility(model.sourceUrl != null ? View.VISIBLE : View.GONE);
             scalematesButton.setOnClickListener(v -> openLink(model.sourceUrl));
+
             // Only wishlist kits can be "bought"; the button disappears once they are.
             moveButton.setVisibility(model.wishlist ? View.VISIBLE : View.GONE);
             moveButton.setOnClickListener(v -> moveToStash(model));
         });
+    }
+
+    /** Tapping the status chip: pick a stage and it's saved straight away, no Edit screen. */
+    private void chooseStatus(ModelKit model) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.change_status)
+                .setSingleChoiceItems(BuildStatus.labels(this), BuildStatus.clamp(model.buildStatus),
+                        (dialog, which) -> {
+                            dialog.dismiss();
+                            if (which == model.buildStatus) {
+                                return; // tapped the stage it is already on
+                            }
+                            model.buildStatus = which;
+                            repository.save(model, () -> Snackbar.make(findViewById(R.id.scroll),
+                                    getString(R.string.status_saved, getString(BuildStatus.label(which))),
+                                    Snackbar.LENGTH_SHORT).show());
+                        })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void loadHeaderPhoto(ImageView target, ModelKit model) {

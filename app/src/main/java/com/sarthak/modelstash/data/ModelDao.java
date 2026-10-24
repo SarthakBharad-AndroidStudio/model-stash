@@ -36,6 +36,11 @@ public interface ModelDao {
     @Query("SELECT * FROM models WHERE wishlist = 0 ORDER BY created_at DESC LIMIT :limit")
     LiveData<List<ModelKit>> getRecent(int limit);
 
+    /** The newest kits at one build stage, for the dashboard's "On the bench" row. */
+    @Query("SELECT * FROM models WHERE wishlist = 0 AND build_status = :status "
+            + "ORDER BY created_at DESC LIMIT :limit")
+    LiveData<List<ModelKit>> getRecentWithStatus(int status, int limit);
+
     @Query("SELECT COUNT(*) FROM models WHERE wishlist = 0")
     LiveData<Integer> count();
 

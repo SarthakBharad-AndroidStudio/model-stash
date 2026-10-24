@@ -20,19 +20,33 @@ public final class StashStats {
     /** The most common scale, e.g. "1:72", or null if no model has one. */
     public final String topScale;
     public final int addedLast30Days;
+    /** Kits you have started but not finished. */
+    public final int inBuild;
+    /** Kits you have finished. */
+    public final int completed;
 
-    private StashStats(int total, int brands, String topScale, int addedLast30Days) {
+    private StashStats(int total, int brands, String topScale, int addedLast30Days,
+                       int inBuild, int completed) {
         this.total = total;
         this.brands = brands;
         this.topScale = topScale;
         this.addedLast30Days = addedLast30Days;
+        this.inBuild = inBuild;
+        this.completed = completed;
     }
 
     public static StashStats from(List<ModelKit> models, long nowMillis) {
         Set<String> brandNames = new HashSet<>();
         Map<String, Integer> scaleCounts = new HashMap<>();
         int recent = 0;
+        int started = 0;
+        int finished = 0;
         for (ModelKit m : models) {
+            if (m.buildStatus == BuildStatus.IN_BUILD) {
+                started++;
+            } else if (m.buildStatus == BuildStatus.COMPLETED) {
+                finished++;
+            }
             if (m.brand != null && !m.brand.trim().isEmpty()) {
                 brandNames.add(m.brand.trim().toLowerCase(Locale.ROOT));
             }
@@ -57,6 +71,6 @@ public final class StashStats {
                 topCount = count;
             }
         }
-        return new StashStats(models.size(), brandNames.size(), top, recent);
+        return new StashStats(models.size(), brandNames.size(), top, recent, started, finished);
     }
 }

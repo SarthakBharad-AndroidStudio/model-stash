@@ -44,6 +44,10 @@ public class ModelRepository {
         return dao.getRecent(limit);
     }
 
+    public LiveData<List<ModelKit>> getRecentWithStatus(int status, int limit) {
+        return dao.getRecentWithStatus(status, limit);
+    }
+
     public LiveData<Integer> count() {
         return dao.count();
     }

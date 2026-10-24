@@ -34,6 +34,7 @@ import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.scalemates.KitInfo;
 import com.sarthak.modelstash.scalemates.ScalematesFetcher;
 import com.sarthak.modelstash.scalemates.ScalematesParser;
+import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
 import com.sarthak.modelstash.util.PhotoStorage;
@@ -51,7 +52,6 @@ public class AddEditModelActivity extends AppCompatActivity {
 
     public static final String EXTRA_MODEL_ID = "model_id";
     public static final String EXTRA_PREFILL_NAME = "prefill_name";
-
     /** true = the new model goes on the Wishlist instead of the owned catalogue. */
     public static final String EXTRA_WISHLIST = "wishlist";
 
@@ -71,6 +71,8 @@ public class AddEditModelActivity extends AppCompatActivity {
     private TextInputEditText scaleInput;
     private TextInputEditText brandInput;
     private TextInputEditText kitNumberInput;
+    private ChipGroup statusChips;
+    private View statusGroup;
     private TextInputEditText descriptionInput;
     private ImageView photoView;
     private MaterialButton removePhotoButton;
@@ -93,10 +95,9 @@ public class AddEditModelActivity extends AppCompatActivity {
     private String pendingCameraPath;
     /** Photos created on this screen; the unused ones are deleted when leaving. */
     private ArrayList<String> newPhotos = new ArrayList<>();
-    private boolean saved;
-
     /** Adding a wanted kit rather than an owned one. */
     private boolean wishlistMode;
+    private boolean saved;
 
     private final ActivityResultLauncher<Uri> takePicture =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
@@ -140,6 +141,8 @@ public class AddEditModelActivity extends AppCompatActivity {
         scaleInput = findViewById(R.id.input_scale);
         brandInput = findViewById(R.id.input_brand);
         kitNumberInput = findViewById(R.id.input_kit_number);
+        statusChips = findViewById(R.id.chips_status);
+        statusGroup = findViewById(R.id.group_status);
         descriptionInput = findViewById(R.id.input_description);
         photoView = findViewById(R.id.image_photo);
         removePhotoButton = findViewById(R.id.button_remove_photo);
@@ -195,6 +198,7 @@ public class AddEditModelActivity extends AppCompatActivity {
             });
         } else {
             wishlistMode = getIntent().getBooleanExtra(EXTRA_WISHLIST, false);
+            statusGroup.setVisibility(wishlistMode ? View.GONE : View.VISIBLE);
             setTitle(wishlistMode ? R.string.title_add_wish : R.string.title_add_model);
             saveButton.setText(wishlistMode ? R.string.save_to_wishlist : R.string.save);
             if (savedInstanceState == null) {
@@ -261,6 +265,7 @@ public class AddEditModelActivity extends AppCompatActivity {
         scaleInput.setText(model.scale);
         brandInput.setText(model.brand);
         kitNumberInput.setText(model.kitNumber);
+        showStatus(model);
         descriptionInput.setText(model.description);
         linkInput.setText(model.sourceUrl);
         setScalematesOpen(model.sourceUrl != null);
@@ -411,6 +416,8 @@ public class AddEditModelActivity extends AppCompatActivity {
         model.sourceUrl = ScalematesParser.extractKitUrl(text(linkInput));
         // Editing keeps the list it is already on; adding uses the tab you came from.
         model.wishlist = editing != null ? editing.wishlist : wishlistMode;
+        // A wishlist kit has no build status; it starts at Unbuilt when you buy it.
+        model.buildStatus = model.wishlist ? BuildStatus.UNBUILT : checkedStatus();
 
         saved = true;
         saveButton.setEnabled(false);
@@ -431,6 +438,33 @@ public class AddEditModelActivity extends AppCompatActivity {
     }
 
     // ---- Small helpers ----
+
+    /** Shows the status row for an owned kit and ticks its chip; wishlist kits don't get one. */
+    private void showStatus(ModelKit model) {
+        statusGroup.setVisibility(model.wishlist ? View.GONE : View.VISIBLE);
+        switch (BuildStatus.clamp(model.buildStatus)) {
+            case BuildStatus.COMPLETED:
+                statusChips.check(R.id.chip_status_completed);
+                break;
+            case BuildStatus.IN_BUILD:
+                statusChips.check(R.id.chip_status_in_build);
+                break;
+            default:
+                statusChips.check(R.id.chip_status_unbuilt);
+                break;
+        }
+    }
+
+    private int checkedStatus() {
+        int checked = statusChips.getCheckedChipId();
+        if (checked == R.id.chip_status_completed) {
+            return BuildStatus.COMPLETED;
+        }
+        if (checked == R.id.chip_status_in_build) {
+            return BuildStatus.IN_BUILD;
+        }
+        return BuildStatus.UNBUILT;
+    }
 
     /** Adds a chip per common scale; tapping one fills in the scale field. */
     private void addScaleSuggestions(ChipGroup group) {

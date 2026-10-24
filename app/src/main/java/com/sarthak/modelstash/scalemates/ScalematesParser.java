@@ -1,5 +1,7 @@
 package com.sarthak.modelstash.scalemates;
 
+import com.sarthak.modelstash.util.ScaleFormat;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -34,8 +36,13 @@ public final class ScalematesParser {
     // so the greedy (.+) splits on the LAST comma. The year is optional.
     private static final Pattern TITLE =
             Pattern.compile("^(.+),\\s+(.+?)(?:\\s*\\(([0-9]{3}[0-9x]|[0-9]{2}xx)\\))?$");
-    private static final Pattern SCALE =
-            Pattern.compile("\\bscale\\s+(1:\\d+(?:[.,]\\d+)?)", Pattern.CASE_INSENSITIVE);
+    // "scale 1:48", "Scale: 1/48" - the scale with a word in front of it.
+    private static final Pattern SCALE_LABELLED = Pattern.compile(
+            "\\bscale\\b[\\s:=]*(1\\s*[:/]\\s*\\d{1,4}(?:[.,]\\d{1,2})?)", Pattern.CASE_INSENSITIVE);
+    // A bare "1:48" or "1/48" that isn't part of a longer number.
+    private static final Pattern SCALE_TOKEN = Pattern.compile(
+            "(?<![\\d.,:/])(1\\s*[:/]\\s*\\d{1,4}(?:[.,]\\d{1,2})?)(?![\\d.,])");
+    private static final Pattern TAG = Pattern.compile("<[^>]*>");
     private static final Pattern NUMBER_AFTER_SCALE = Pattern.compile(
             "\\bscale\\s+1:[\\d.,]+,\\s+(.+?)\\s+is\\s+(?:a|an|the)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern SITE_SUFFIX =
@@ -98,11 +105,9 @@ public final class ScalematesParser {
             info.name = title;
         }
 
+        info.scale = findScale(description, title, html);
+
         if (description != null) {
-            Matcher s = SCALE.matcher(description);
-            if (s.find()) {
-                info.scale = s.group(1).replace(',', '.');
-            }
             Matcher n = NUMBER_AFTER_SCALE.matcher(description);
             if (n.find()) {
                 info.kitNumber = n.group(1).trim();
@@ -113,6 +118,42 @@ public final class ScalematesParser {
             splitBrandAndNumber(info, brandAndNumber);
         }
         return info.name.isEmpty() ? null : info;
+    }
+
+    /**
+     * Scalemates writes the scale in several ways and sometimes leaves it out of the meta
+     * description altogether, so look in widening circles and stop at the first hit: a
+     * labelled "scale 1:48" in the description, a bare "1:48" there, the same in the title,
+     * and finally a labelled one anywhere in the page's visible text.
+     *
+     * @return the scale as "1:N", or null when the page genuinely has none - in which case
+     *         the form leaves the field empty rather than guessing.
+     */
+    private static String findScale(String description, String title, String html) {
+        String found = firstGroup(SCALE_LABELLED, description);
+        if (found == null) {
+            found = firstGroup(SCALE_TOKEN, description);
+        }
+        if (found == null) {
+            found = firstGroup(SCALE_TOKEN, title);
+        }
+        if (found == null) {
+            found = firstGroup(SCALE_LABELLED, TAG.matcher(html).replaceAll(" "));
+        }
+        if (found == null) {
+            return null;
+        }
+        // ScaleFormat already knows how to turn "1 / 48" and "1:48,5" into one stored form.
+        String scale = ScaleFormat.normalize(found.replaceAll("\\s+", ""));
+        return scale == null || scale.isEmpty() ? null : scale;
+    }
+
+    private static String firstGroup(Pattern pattern, String text) {
+        if (text == null) {
+            return null;
+        }
+        Matcher m = pattern.matcher(text);
+        return m.find() ? m.group(1) : null;
     }
 
     /** "Tamiya 61119" -> brand "Tamiya"; uses the kit number from the description when known. */

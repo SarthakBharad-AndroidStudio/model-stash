@@ -7,7 +7,7 @@ import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-/** One model kit: either one you own, or one on your wishlist. Room turns this class into the "models" table. */
+/** One model kit you own. Room turns this class into the "models" table. */
 @Entity(tableName = "models", indices = {@Index("name"), @Index("created_at")})
 public class ModelKit {
 
@@ -44,6 +44,10 @@ public class ModelKit {
 
     /** true = a kit you want to buy (Wishlist tab); false = a kit you own (Catalogue). */
     public boolean wishlist;
+
+    /** How far along the build is: see BuildStatus. Wishlist kits are always UNBUILT. */
+    @ColumnInfo(name = "build_status")
+    public int buildStatus;
 
     /** When it was added, in milliseconds since 1970 (System.currentTimeMillis()). */
     @ColumnInfo(name = "created_at")

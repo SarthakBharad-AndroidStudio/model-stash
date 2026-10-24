@@ -1,6 +1,6 @@
 # Model Stash
 
-An Android app for keeping track of the scale model kits you own — and the ones you still want.
+An Android app for keeping track of the scale model kits you own, what stage each build is at, and the ones you still want.
 
 Built because "do I already have this one?" is a hard question to answer while standing in a hobby shop.
 
@@ -21,13 +21,15 @@ Built because "do I already have this one?" is a hard question to answer while s
 
 ## Features
 
-**Catalogue** — every kit you own, as a photo grid. Each kit holds a name, scale, brand, kit number, a description and a photo. Sort by name, by newest, or by scale.
+**Catalogue** — every kit you own, as a photo grid. Each kit holds a name, scale, brand, kit number, a description and a photo. Sort by name, by newest or by scale.
 
-**Search that answers the actual question** — type a name or a kit number and the screen says plainly whether you own it: *You own "Spitfire Mk.I"*, *You don't own it yet*, or *3 models match*. If you don't own it, a button takes you straight to the add form with the name already filled in. Search runs against names and kit numbers, so `32571` finds a kit just as well as its name does.
+**Build stages** — every owned kit is *Unbuilt*, *On the bench* or *Completed*. The detail screen shows the stage as a chip; tapping it saves a new stage immediately, without opening the edit form. A chip row in the Catalogue filters by stage, independently of the sort order and the search box.
 
-**Wishlist** — a second list for kits you want to buy, kept apart from what you own. Same add flow, same fields. When you actually buy one, a single button moves it into your catalogue with its photo and notes intact.
+**Search that answers the actual question** — type a name or a kit number and the screen says plainly whether you own it: *You own "Spitfire Mk.I"*, *You don't own it yet*, or *3 models match*. If you don't own it, a button takes you straight to the add form with the name already filled in. With a stage filter on, the same line reports the share instead: *Showing 4 of 46*.
 
-**Dashboard** — how many kits you own, how many brands, your most common scale, how many you added in the last 30 days, and a carousel of the newest ones.
+**Wishlist** — a second list for kits you want to buy, kept apart from what you own. Same add flow, same fields. When you actually buy one, a single button moves it into your catalogue with its photo and notes intact, starting at *Unbuilt*.
+
+**Dashboard** — how many kits you own, how many are built and how many are on the bench, your brand count, your most common scale, and what you added in the last 30 days. Below that, a carousel of what you're currently building and another of the newest additions. *See all* on either one opens the Catalogue already filtered to match.
 
 **Photos** — camera or gallery, stored in the app's own private folder so they never clutter your camera roll. Tapping a card grows its photo into the detail screen's header.
 
@@ -53,34 +55,36 @@ Yamashiro 1944 full hull with metal barrel,,Aoshima,
 - Scales are normalised: `72`, `1/72` and `1:72` all become `1:72`. Anything that isn't a scale is left empty rather than rejecting the row.
 - Quoted fields, semicolon separators (as German Excel writes them), Windows line endings and a leading byte-order mark all work.
 - Which list gets filled follows the tab you're on — import from the Wishlist tab and the rows land there.
-- An import always adds; it never overwrites and never deletes.
+- Imported kits arrive as *Unbuilt*. An import always adds; it never overwrites and never deletes.
 
 ## How the Scalemates import works
 
 Scalemates has no public API, and its `robots.txt` asks automated tools to stay out of search. So the app doesn't crawl it and never goes looking for a kit on its own.
 
-What it does instead is fetch exactly one page — the kit URL you paste or share — on a background thread, identifying itself honestly in the User-Agent. `ScalematesParser` reads the `og:title` meta tag for the kit name and the meta description for the brand, kit number, scale and release year, decoding HTML entities as it goes. Everything it finds lands in the form as editable text, so a wrong guess costs you one correction rather than a bad record.
+What it does instead is fetch exactly one page — the kit URL you paste or share — on a background thread, identifying itself honestly in the User-Agent. `ScalematesParser` reads the `og:title` meta tag for the kit name and the meta description for the brand, kit number and release year, decoding HTML entities as it goes.
 
-Only kit URLs (`scalemates.com/kits/…`) are accepted; anything else is rejected with a message rather than fetched.
+The scale is worth a note, because Scalemates writes it several different ways. The parser looks in widening circles and stops at the first hit: a labelled `scale 1:48` in the meta description, a bare `1:48` or `1/700` there, the same in the title, and finally a labelled one anywhere in the page's visible text. A page with no scale at all — a tool, a detail set — leaves the field empty rather than guessing.
+
+Everything it finds lands in the form as editable text, so a wrong guess costs one correction rather than a bad record. Only kit URLs (`scalemates.com/kits/…`) are accepted; anything else is rejected with a message rather than fetched.
 
 ## Architecture
 
 One activity hosting three fragments for the tabs, plus two activities for the flows that deserve their own screen.
 
 ```
-MainActivity ─ DashboardFragment    stats + recently added
-             ├ CatalogueFragment    search + grid of kits you own
+MainActivity ─ DashboardFragment    stats, on the bench, recently added
+             ├ CatalogueFragment    search, stage filter, sort, grid
              └ WishlistFragment     grid of kits you want
 
 AddEditModelActivity   add or edit, Scalemates fetch, photos
-ModelDetailActivity    one kit, collapsing photo header, delete / edit / move
+ModelDetailActivity    one kit, collapsing photo header, stage picker, delete / edit / move
 ```
 
-**Data** — Room with a single `models` table. A `wishlist` boolean decides which list a kit belongs to, which is what makes moving between them a one-field update rather than a copy. Schema changes ship as real migrations (`1→2` added the wishlist flag, `2→3` the kit number), so updating the app never wipes what's on the phone. All writes go through `ModelRepository` onto a fixed thread pool; the UI never touches the database directly.
+**Data** — Room with a single `models` table. A `wishlist` boolean decides which list a kit belongs to, which is what makes moving between them a one-field update rather than a copy, and a `build_status` int holds the stage. Schema changes ship as real migrations (`1→2` added the wishlist flag, `2→3` the kit number, `3→4` the build status), so updating the app never wipes what's on the phone. All writes go through `ModelRepository` onto a fixed thread pool; the UI never touches the database directly.
 
-**State** — `MainViewModel` exposes LiveData for the counts, the recent list, the wishlist and the search results. The search query feeds a `switchMap` so typing re-queries the database rather than filtering in memory, and the sort order is layered on with a `MediatorLiveData`. Because the view model is scoped to the activity, switching tabs keeps your search and sort.
+**State** — `MainViewModel` exposes LiveData for the stats, the recent list, what's on the bench, the wishlist and the search results. The grid's contents are search results, narrowed to one build stage, then sorted: three inputs feeding one `MediatorLiveData`, so whichever one changes re-runs the chain. Searching re-queries the database rather than filtering in memory. Because the view model is scoped to the activity, switching tabs keeps your search, sort and filter — and lets the dashboard set the Catalogue's filter before handing over.
 
-**Lists** — `ListAdapter` with a `DiffUtil` callback, so inserts and edits animate instead of blinking. The dashboard carousel uses a `LinearSnapHelper`; the grids use a staggered enter animation.
+**Lists** — `ListAdapter` with a `DiffUtil` callback, so inserts and edits animate instead of blinking. The grids use a staggered enter animation; the dashboard carousels use a custom `StartSnapHelper` that aligns cards to the left edge and switches snapping off at the end of the list, because the stock centre-snapping helper leaves a short carousel with only one position it can settle in.
 
 **Transitions** — tapping a card runs a shared-element transition into the detail screen. The enter transition is postponed until Glide reports the photo is decoded, so the animation starts from a real image rather than an empty frame.
 
@@ -98,13 +102,13 @@ app/src/main/java/com/sarthak/modelstash/
 ├── ModelStashApp.java         applies the saved light/dark preference at startup
 ├── data/                      ModelKit entity, DAO, database + migrations, repository
 ├── scalemates/                single-page fetcher and its HTML parser
-├── ui/                        fragments, activities, list adapter, view model
-└── util/                      scale formatting, CSV parsing, photo storage, stats, sorting
+├── ui/                        fragments, activities, list adapter, snap helper, view model
+└── util/                      build stages, scale formatting, CSV parsing, photo storage, stats
 ```
 
 ## Tests
 
-The logic that doesn't need a device lives in plain Java classes and is unit-tested: scale normalisation, CSV parsing, the Scalemates HTML parser, sorting and the dashboard stats.
+The logic that doesn't need a device lives in plain Java classes and is unit-tested: scale normalisation, CSV parsing, the Scalemates HTML parser, build-stage handling, sorting and the dashboard stats. 25 tests, no device required.
 
 ```
 ./gradlew test
@@ -123,8 +127,6 @@ The logic that doesn't need a device lives in plain Java classes and is unit-tes
 1. Clone the repo and open it in Android Studio.
 2. Let Gradle sync — dependencies come from Google's Maven repository and Maven Central.
 3. Run on a device or emulator, API 26 or newer.
-
-For an installable build: **Build → Generate Signed App Bundle / APK → APK**, create or pick a keystore, and choose the `release` variant. Keep the `.jks` file and its passwords — without them you can't ship an update that installs over the previous one.
 
 ## Privacy
 

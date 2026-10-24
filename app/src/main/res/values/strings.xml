@@ -1,4 +1,6 @@
 <resources>
+
+    <!-- App -->
     <string name="app_name">Model Stash</string>
     <!-- Shown in the toolbar in the Tanker font (all capitals by design) -->
     <string name="app_name_display">MODEL STASH</string>
@@ -7,7 +9,9 @@
     <!-- Navigation -->
     <string name="nav_dashboard">Home</string>
     <string name="nav_catalogue">Catalogue</string>
+    <string name="nav_wishlist">Wishlist</string>
     <string name="add_model">Add model</string>
+    <string name="add_to_wishlist">Add to wishlist</string>
 
     <!-- Appearance -->
     <string name="appearance">Appearance</string>
@@ -21,10 +25,12 @@
         <item quantity="one">model catalogued</item>
         <item quantity="other">models catalogued</item>
     </plurals>
+    <string name="progress_line">%1$d built · %2$d on the bench</string>
     <string name="stat_brands">Brands</string>
     <string name="stat_top_scale">Top scale</string>
     <string name="stat_recent">Last 30 days</string>
     <string name="stat_none">–</string>
+    <string name="bench_heading">On the bench</string>
     <string name="recently_added">Recently added</string>
     <string name="see_all">See all</string>
     <string name="empty_title">Your stash is empty</string>
@@ -32,15 +38,17 @@
     <string name="empty_action">Add your first kit</string>
     <string name="added_ago">Added %1$s</string>
 
-    <!-- Catalogue / search -->
+    <!-- Catalogue: search, sort, filter -->
     <string name="search_hint">Search your stash</string>
     <string name="sort_name">A–Z</string>
     <string name="sort_newest">Newest</string>
     <string name="sort_scale">Scale</string>
+    <string name="filter_all">All</string>
     <plurals name="catalogue_total">
         <item quantity="one">You own %1$d model</item>
         <item quantity="other">You own %1$d models</item>
     </plurals>
+    <string name="catalogue_filtered">Showing %1$d of %2$d</string>
     <string name="status_owned">You own “%1$s”</string>
     <string name="status_not_owned">You don\'t own “%1$s” yet</string>
     <plurals name="status_partial_matches">
@@ -49,8 +57,28 @@
     </plurals>
     <string name="add_searched">Add it</string>
 
+    <!-- Wishlist -->
+    <plurals name="wishlist_count">
+        <item quantity="one">%1$d kit you want</item>
+        <item quantity="other">%1$d kits you want</item>
+    </plurals>
+    <string name="wishlist_empty_title">Nothing on your wishlist</string>
+    <string name="wishlist_empty_body">Kits you\'d like to buy live here, kept apart from the ones you own.</string>
+    <string name="wishlist_empty_action">Add a kit you want</string>
+    <string name="move_to_stash">I bought it — move to my stash</string>
+    <string name="moved_to_stash">Moved to your stash</string>
+
+    <!-- Build status: the form, the detail chip, the catalogue filter and the dashboard all read these -->
+    <string name="build_status_label">Build status</string>
+    <string name="status_unbuilt">Unbuilt</string>
+    <string name="status_in_build">On the bench</string>
+    <string name="status_completed">Completed</string>
+    <string name="change_status">Change build status</string>
+    <string name="status_saved">Marked as %1$s</string>
+
     <!-- Add / edit -->
     <string name="title_add_model">New model</string>
+    <string name="title_add_wish">New wish</string>
     <string name="title_edit_model">Edit model</string>
     <string name="scalemates_heading">Import from Scalemates</string>
     <string name="scalemates_subtitle">Optional: fills in name, number, brand and scale</string>
@@ -69,19 +97,15 @@
     <string name="scale_helper">Size compared to the real thing</string>
     <string name="brand_hint">Brand (optional)</string>
     <string name="kit_number_hint">Kit number (optional)</string>
-    <string name="kit_number_chip">#%1$s</string>
     <string name="description_hint">Description (optional)</string>
     <string name="save">Save to stash</string>
+    <string name="save_to_wishlist">Save to wishlist</string>
     <string name="save_changes">Save changes</string>
-    <string name="error_name_required">Give the model a name</string>
-    <string name="error_scale">Use a scale like 1:72, 1/72 or 72</string>
-    <string name="error_not_scalemates">That isn\'t a Scalemates kit link (scalemates.com/kits/…)</string>
-    <string name="error_no_camera">No camera app found</string>
-    <string name="error_photo_copy">Couldn\'t load that photo</string>
 
     <!-- Detail -->
     <string name="title_details">Model details</string>
     <string name="added_on">Added on %1$s</string>
+    <string name="kit_number_chip">#%1$s</string>
     <string name="description_label">About this kit</string>
     <string name="view_on_scalemates">View on Scalemates</string>
     <string name="edit">Edit</string>
@@ -90,21 +114,7 @@
     <string name="delete_title">Delete “%1$s”?</string>
     <string name="delete_message">The model and its photo will be removed from your stash. This can\'t be undone.</string>
 
-    <string name="nav_wishlist">Wishlist</string>
-    <string name="add_to_wishlist">Add to wishlist</string>
-    <string name="title_add_wish">New wish</string>
-    <string name="save_to_wishlist">Save to wishlist</string>
-
-    <plurals name="wishlist_count">
-        <item quantity="one">%1$d kit you want</item>
-        <item quantity="other">%1$d kits you want</item>
-    </plurals>
-    <string name="wishlist_empty_title">Nothing on your wishlist</string>
-    <string name="wishlist_empty_body">Kits you\'d like to buy live here, kept apart from the ones you own.</string>
-    <string name="wishlist_empty_action">Add a kit you want</string>
-    <string name="move_to_stash">I bought it — move to my stash</string>
-    <string name="moved_to_stash">Moved to your stash</string>
-
+    <!-- CSV import -->
     <string name="import_csv">Import CSV</string>
     <plurals name="import_done">
         <item quantity="one">Imported %1$d kit</item>
@@ -112,4 +122,12 @@
     </plurals>
     <string name="import_empty">No kits found in that file</string>
     <string name="import_failed">Couldn\'t read that file</string>
+
+    <!-- Errors -->
+    <string name="error_name_required">Give the model a name</string>
+    <string name="error_scale">Use a scale like 1:72, 1/72 or 72</string>
+    <string name="error_not_scalemates">That isn\'t a Scalemates kit link (scalemates.com/kits/…)</string>
+    <string name="error_no_camera">No camera app found</string>
+    <string name="error_photo_copy">Couldn\'t load that photo</string>
+
 </resources>

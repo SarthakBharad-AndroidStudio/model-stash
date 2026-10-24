@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** The app's single SQLite database file, "model_stash.db". */
-@Database(entities = {ModelKit.class}, version = 3, exportSchema = false)
+@Database(entities = {ModelKit.class}, version = 4, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** Background threads for database writes and file work (never block the UI thread). */
@@ -38,6 +38,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Version 4 added the build status. Everything already in the stash starts
+     * at 0 (Unbuilt), which is the right answer for a kit nobody has told us about.
+     */
+    static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE models ADD COLUMN build_status INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     private static volatile AppDatabase instance;
 
     public abstract ModelDao modelDao();
@@ -48,7 +59,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "model_stash.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                             .build();
                 }
             }

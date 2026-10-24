@@ -59,6 +59,35 @@ public class ScalematesParserTest {
     }
 
     @Test
+    public void findsTheScaleWhenTheDescriptionDoesNotSayTheWordScale() {
+        KitInfo info = ScalematesParser.parse(
+                "<title>IJN Battleship Mikasa, Hasegawa CH128</title>"
+                        + "<meta name='description' content='Hasegawa 1/700 Full Hull Special, plastic kit'>");
+        assertNotNull(info);
+        assertEquals("1:700", info.scale);
+    }
+
+    @Test
+    public void fallsBackToTheScalePrintedInThePageBody() {
+        KitInfo info = ScalematesParser.parse(
+                "<title>Yamashiro 1944, Aoshima 04527</title>"
+                        + "<meta name='description' content='Plastic kit | Contents, Previews, Reviews'>"
+                        + "<body><div class='row'><span>Scale:</span><a href='/x'>1:700</a></div></body>");
+        assertNotNull(info);
+        assertEquals("1:700", info.scale);
+    }
+
+    @Test
+    public void leavesTheScaleEmptyWhenThePageHasNone() {
+        KitInfo info = ScalematesParser.parse(
+                "<title>Masking Tape, Tamiya 87030</title>"
+                        + "<meta name='description' content='Tamiya tool, released in 2015'>"
+                        + "<body>No scale here. Released 2015. EAN 4950344870301</body>");
+        assertNotNull(info);
+        assertNull(info.scale);
+    }
+
+    @Test
     public void decodesHtmlEntities() {
         KitInfo info = ScalematesParser.parse(
                 "<title>Sd.Kfz. 251 &quot;Hanomag&quot; &amp; crew, Dragon 6245 (2006)</title>");
