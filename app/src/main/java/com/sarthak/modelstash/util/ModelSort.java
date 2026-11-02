@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-/** The Catalogue's three sort orders. Plain Java, so it's unit-tested. */
+/** The Catalogue's sort orders. Plain Java, so it's unit-tested. */
 public final class ModelSort {
 
     public enum Mode { NAME, NEWEST, SCALE }

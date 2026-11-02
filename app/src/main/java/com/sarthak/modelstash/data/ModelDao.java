@@ -48,12 +48,14 @@ public interface ModelDao {
     LiveData<List<ModelKit>> getAll();
 
     /**
-     * Name or kit number contains the query (case-insensitive), so "32571" finds a kit
-     * as well as its name does. The query must already be LIKE-escaped.
+     * Name, kit number or brand contains the query (case-insensitive), so "32571"
+     * and "Tamiya" both find kits as well as a name does. The query must already
+     * be LIKE-escaped.
      */
     @Query("SELECT * FROM models WHERE wishlist = 0 "
             + "AND (name LIKE '%' || :query || '%' ESCAPE '\\' "
-            + "OR kit_number LIKE '%' || :query || '%' ESCAPE '\\') "
+            + "OR kit_number LIKE '%' || :query || '%' ESCAPE '\\' "
+            + "OR brand LIKE '%' || :query || '%' ESCAPE '\\') "
             + "ORDER BY name COLLATE NOCASE")
     LiveData<List<ModelKit>> searchByName(String query);
 

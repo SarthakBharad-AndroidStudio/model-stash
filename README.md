@@ -13,9 +13,9 @@ Built because "do I already have this one?" is a hard question to answer while s
     <td align="center"><img src="docs/detail.png" width="240"><br><sub>Kit detail</sub></td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/brands.png" width="240"><br><sub>Brands</sub></td>
     <td align="center"><img src="docs/wishlist.png" width="240"><br><sub>Wishlist</sub></td>
     <td align="center"><img src="docs/add.png" width="240"><br><sub>Adding a kit</sub></td>
-    <td align="center"><img src="docs/light.png" width="240"><br><sub>Light theme</sub></td>
   </tr>
 </table>
 
@@ -25,11 +25,13 @@ Built because "do I already have this one?" is a hard question to answer while s
 
 **Build stages** — every owned kit is *Unbuilt*, *On the bench* or *Completed*. The detail screen shows the stage as a chip; tapping it saves a new stage immediately, without opening the edit form. A chip row in the Catalogue filters by stage, independently of the sort order and the search box.
 
-**Search that answers the actual question** — type a name or a kit number and the screen says plainly whether you own it: *You own "Spitfire Mk.I"*, *You don't own it yet*, or *3 models match*. If you don't own it, a button takes you straight to the add form with the name already filled in. With a stage filter on, the same line reports the share instead: *Showing 4 of 46*.
+**Search that answers the actual question** — type a name, a kit number or a brand and the screen says plainly whether you own it: *You own "Spitfire Mk.I"*, *You don't own it yet*, or *3 models match*. If you don't own it, a button takes you straight to the add form with the name already filled in. With a stage filter on, the same line reports the share instead: *Showing 4 of 46*.
+
+**Brands** — a screen listing every manufacturer in your stash with a kit count, each one expanding to show its kits. Brands are matched ignoring case and spacing, so kits typed by hand and kits fetched from Scalemates land in the same group.
 
 **Wishlist** — a second list for kits you want to buy, kept apart from what you own. Same add flow, same fields. When you actually buy one, a single button moves it into your catalogue with its photo and notes intact, starting at *Unbuilt*.
 
-**Dashboard** — how many kits you own, how many are built and how many are on the bench, your brand count, your most common scale, and what you added in the last 30 days. Below that, a carousel of what you're currently building and another of the newest additions. *See all* on either one opens the Catalogue already filtered to match.
+**Dashboard** — how many kits you own, how many are built and how many are on the bench, your brand count, your most common scale, and what you added in the last 30 days. Every one of those numbers is tappable and opens the thing it counts. Below them, a carousel of what you're currently building and another of the newest additions, each with a *See all* that opens the Catalogue already filtered to match.
 
 **Photos** — camera or gallery, stored in the app's own private folder so they never clutter your camera roll. Tapping a card grows its photo into the detail screen's header.
 
@@ -69,7 +71,7 @@ Everything it finds lands in the form as editable text, so a wrong guess costs o
 
 ## Architecture
 
-One activity hosting three fragments for the tabs, plus two activities for the flows that deserve their own screen.
+One activity hosting three fragments for the tabs, plus three activities for the flows that deserve their own screen.
 
 ```
 MainActivity ─ DashboardFragment    stats, on the bench, recently added
@@ -78,13 +80,14 @@ MainActivity ─ DashboardFragment    stats, on the bench, recently added
 
 AddEditModelActivity   add or edit, Scalemates fetch, photos
 ModelDetailActivity    one kit, collapsing photo header, stage picker, delete / edit / move
+BrandsActivity         every brand, expandable to the kits under it
 ```
 
 **Data** — Room with a single `models` table. A `wishlist` boolean decides which list a kit belongs to, which is what makes moving between them a one-field update rather than a copy, and a `build_status` int holds the stage. Schema changes ship as real migrations (`1→2` added the wishlist flag, `2→3` the kit number, `3→4` the build status), so updating the app never wipes what's on the phone. All writes go through `ModelRepository` onto a fixed thread pool; the UI never touches the database directly.
 
-**State** — `MainViewModel` exposes LiveData for the stats, the recent list, what's on the bench, the wishlist and the search results. The grid's contents are search results, narrowed to one build stage, then sorted: three inputs feeding one `MediatorLiveData`, so whichever one changes re-runs the chain. Searching re-queries the database rather than filtering in memory. Because the view model is scoped to the activity, switching tabs keeps your search, sort and filter — and lets the dashboard set the Catalogue's filter before handing over.
+**State** — `MainViewModel` exposes LiveData for the stats, the recent list, what's on the bench, the wishlist and the search results. The grid's contents are search results, narrowed to one build stage, then sorted: three inputs feeding one `MediatorLiveData`, so whichever one changes re-runs the chain. Searching re-queries the database — name, kit number and brand in one `LIKE` — rather than filtering in memory. Because the view model is scoped to the activity, switching tabs keeps your search, sort and filter, and lets the dashboard set the Catalogue's sort and filter before handing over, which is how a tapped stat opens the Catalogue already arranged to show what it counted.
 
-**Lists** — `ListAdapter` with a `DiffUtil` callback, so inserts and edits animate instead of blinking. The grids use a staggered enter animation; the dashboard carousels use a custom `StartSnapHelper` that aligns cards to the left edge and switches snapping off at the end of the list, because the stock centre-snapping helper leaves a short carousel with only one position it can settle in.
+**Lists** — `ListAdapter` with a `DiffUtil` callback, so inserts and edits animate instead of blinking. The grids use a staggered enter animation; the dashboard carousels use a custom `StartSnapHelper` that aligns cards to the left edge and switches snapping off at the end of the list, because the stock centre-snapping helper leaves a short carousel with only one position it can settle in. The Brands screen flattens its groups into a single list of header and kit rows, rebuilt on each toggle so rows animate in and out.
 
 **Transitions** — tapping a card runs a shared-element transition into the detail screen. The enter transition is postponed until Glide reports the photo is decoded, so the animation starts from a real image rather than an empty frame.
 
@@ -102,13 +105,14 @@ app/src/main/java/com/sarthak/modelstash/
 ├── ModelStashApp.java         applies the saved light/dark preference at startup
 ├── data/                      ModelKit entity, DAO, database + migrations, repository
 ├── scalemates/                single-page fetcher and its HTML parser
-├── ui/                        fragments, activities, list adapter, snap helper, view model
-└── util/                      build stages, scale formatting, CSV parsing, photo storage, stats
+├── ui/                        fragments, activities, list adapters, snap helper, view model
+└── util/                      build stages, brand grouping, scale formatting,
+                               CSV parsing, photo storage, stats
 ```
 
 ## Tests
 
-The logic that doesn't need a device lives in plain Java classes and is unit-tested: scale normalisation, CSV parsing, the Scalemates HTML parser, build-stage handling, sorting and the dashboard stats. 25 tests, no device required.
+The logic that doesn't need a device lives in plain Java classes and is unit-tested: scale normalisation, CSV parsing, the Scalemates HTML parser, build-stage handling, brand grouping, sorting and the dashboard stats. 27 tests, no device required.
 
 ```
 ./gradlew test

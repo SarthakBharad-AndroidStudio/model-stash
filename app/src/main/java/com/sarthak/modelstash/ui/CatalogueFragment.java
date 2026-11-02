@@ -188,7 +188,7 @@ public class CatalogueFragment extends Fragment {
             boolean filtered = viewModel.getStatusFilter() != MainViewModel.STATUS_ANY;
             statusText.setText(filtered
                     ? getString(R.string.catalogue_filtered, results.size(),
-                    Math.max(totalOwned, results.size()))
+                            Math.max(totalOwned, results.size()))
                     : getResources().getQuantityString(
                     R.plurals.catalogue_total, results.size(), results.size()));
             paintStatus(MaterialColors.getColor(statusCard,

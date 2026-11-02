@@ -21,6 +21,9 @@
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_hero"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
             android:orientation="vertical"
             android:padding="24dp">
 
@@ -67,10 +70,13 @@
             android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_brands"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_margin="6dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -94,10 +100,13 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_top_scale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_margin="6dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -122,10 +131,13 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_recent"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_margin="6dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"

@@ -33,13 +33,22 @@
     <string name="bench_heading">On the bench</string>
     <string name="recently_added">Recently added</string>
     <string name="see_all">See all</string>
+
+    <!-- Brands -->
+    <string name="title_brands">Brands</string>
+    <string name="brand_none">No brand</string>
+    <plurals name="brand_kit_count">
+        <item quantity="one">%1$d kit</item>
+        <item quantity="other">%1$d kits</item>
+    </plurals>
+    <string name="brands_empty">Add a kit with a brand and it will show up here.</string>
     <string name="empty_title">Your stash is empty</string>
     <string name="empty_body">Add the kits on your shelf and they\'ll show up here.</string>
     <string name="empty_action">Add your first kit</string>
     <string name="added_ago">Added %1$s</string>
 
     <!-- Catalogue: search, sort, filter -->
-    <string name="search_hint">Search your stash</string>
+    <string name="search_hint">Search name, number or brand</string>
     <string name="sort_name">A–Z</string>
     <string name="sort_newest">Newest</string>
     <string name="sort_scale">Scale</string>

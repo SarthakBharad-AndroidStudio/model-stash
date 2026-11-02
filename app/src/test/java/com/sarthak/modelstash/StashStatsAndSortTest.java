@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.util.BrandGroups;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.ModelSort;
 import com.sarthak.modelstash.util.ScaleFormat;
@@ -69,6 +70,29 @@ public class StashStatsAndSortTest {
         assertEquals(0, stats.completed);
         assertEquals(0, stats.inBuild);
         assertEquals(BuildStatus.UNBUILT, BuildStatus.clamp(99));
+    }
+
+    @Test
+    public void groupsByBrandIgnoringCaseWithTheUnbrandedLast() {
+        List<BrandGroups.Group> groups = BrandGroups.from(sampleStash());
+        assertEquals(4, groups.size());
+
+        assertEquals("Hasegawa", groups.get(0).brand);
+        assertEquals("Revell", groups.get(1).brand);
+
+        // "Tamiya" and "tamiya" are one group, shown with the spelling seen first
+        assertEquals("Tamiya", groups.get(2).brand);
+        assertEquals(2, groups.get(2).size());
+        assertEquals("Spitfire Mk.I", groups.get(2).models.get(0).name);
+        assertEquals("Tiger I", groups.get(2).models.get(1).name);
+
+        assertNull(groups.get(3).brand); // the unbranded group
+        assertEquals("Garage kit", groups.get(3).models.get(0).name);
+    }
+
+    @Test
+    public void groupingAnEmptyStashGivesNoGroups() {
+        assertEquals(0, BrandGroups.from(new ArrayList<>()).size());
     }
 
     @Test

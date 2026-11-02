@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.sarthak.modelstash.MainActivity;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.util.BuildStatus;
+import com.sarthak.modelstash.util.ModelSort;
 import com.sarthak.modelstash.util.StashStats;
 
 /** Tab 1: the stash in numbers, and a swipeable row of the latest additions. */
@@ -57,10 +58,18 @@ public class DashboardFragment extends Fragment {
         bench.setAdapter(benchAdapter);
         new StartSnapHelper().attachToRecyclerView(bench);
 
-        view.findViewById(R.id.button_see_all).setOnClickListener(v -> {
-            viewModel.setStatusFilter(MainViewModel.STATUS_ANY);
-            activity.openCatalogue();
-        });
+        // Every stat is a way into the Catalogue, already set up to show what it counts.
+        view.findViewById(R.id.hero).setOnClickListener(v ->
+                openCatalogue(viewModel, activity, ModelSort.Mode.NAME));
+        view.findViewById(R.id.card_top_scale).setOnClickListener(v ->
+                openCatalogue(viewModel, activity, ModelSort.Mode.SCALE));
+        view.findViewById(R.id.card_recent).setOnClickListener(v ->
+                openCatalogue(viewModel, activity, ModelSort.Mode.NEWEST));
+        view.findViewById(R.id.card_brands).setOnClickListener(v ->
+                BrandsActivity.start(requireContext()));
+
+        view.findViewById(R.id.button_see_all).setOnClickListener(v ->
+                openCatalogue(viewModel, activity, viewModel.getSortMode()));
         // "See all" here hands the Catalogue its filter on the way over.
         view.findViewById(R.id.button_see_bench).setOnClickListener(v -> {
             viewModel.setStatusFilter(BuildStatus.IN_BUILD);
@@ -104,6 +113,13 @@ public class DashboardFragment extends Fragment {
                 carousel.scheduleLayoutAnimation();
             }
         });
+    }
+
+    /** Opens the Catalogue showing everything, in the sort order that matches what was tapped. */
+    private void openCatalogue(MainViewModel viewModel, MainActivity activity, ModelSort.Mode sort) {
+        viewModel.setStatusFilter(MainViewModel.STATUS_ANY);
+        viewModel.setSortMode(sort);
+        activity.openCatalogue();
     }
 
     /** Counts up from the previous number to the new one instead of jumping. */
