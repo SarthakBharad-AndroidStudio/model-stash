@@ -84,13 +84,11 @@ Download the newer APK from the Releases page and install it over the existing a
 
 ## Screenshots
 
-| Dashboard | Catalogue |
-| :---: | :---: |
-| <img src="docs/dashboard.png" width="280" alt="Dashboard"> | <img src="docs/catalogue.png" width="280" alt="Catalogue"> |
-| **Kit Details** | **Add / Edit** |
-| <img src="docs/kit_details.png" width="280" alt="Kit details"> | <img src="docs/add_edit.png" width="280" alt="Add / edit"> |
-| **Wishlist** | **Light Mode** |
-| <img src="docs/wishlist.png" width="280" alt="Wishlist"> | <img src="docs/light_mode.png" width="280" alt="Light mode"> |
+| Dashboard | Catalogue | Kit Details |
+| :---: | :---: | :---: |
+| <img src="docs/dashboard.png" width="250" alt="Dashboard"> | <img src="docs/catalogue.png" width="250" alt="Catalogue"> | <img src="docs/kit_details.png" width="250" alt="Kit details"> |
+| **Add / Edit** | **Wishlist** | **Light Mode** |
+| <img src="docs/add_edit.png" width="250" alt="Add / edit"> | <img src="docs/wishlist.png" width="250" alt="Wishlist"> | <img src="docs/light_mode.png" width="250" alt="Light mode"> |
 
 ---
 
