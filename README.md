@@ -6,7 +6,32 @@ Before you buy a kit, Model Stash answers one question in a second: *do I alread
 
 Everything stays on your phone. There's no account, no server and no ads.
 
-[![Download APK](https://img.shields.io/github/v/release/SarthakBharad-AndroidStudio/model-stash?label=Download%20APK)](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.5)
+[![Download APK](https://img.shields.io/github/v/release/SarthakBharad-AndroidStudio/model-stash?label=Download%20APK)](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/latest)
+![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue)
+
+---
+
+## Download
+
+Model Stash isn't on the Play Store. Each version is published as a signed APK on the **[Releases page](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/latest)**.
+
+| | |
+| --- | --- |
+| Latest version | **1.5** |
+| File | `model-stash-v1.5.apk` (about 5.8 MB) |
+| Requires | Android 8.0 or later |
+| Package | `com.sarthak.modelstash` |
+
+### Install
+1. On your Android phone, open the [latest release](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/latest) and download the `.apk` under **Assets**.
+2. Open the downloaded file. If Android asks, allow your browser to **install unknown apps**.
+3. Tap **Install**. If Play Protect warns about an unknown developer, tap **More details → Install anyway**.
+
+### Update
+Download the newer APK from the Releases page and install it over the existing app. Your kits and photos are kept.
+
+**Don't uninstall first.** Uninstalling deletes the app's database and photos.
 
 ---
 
@@ -195,7 +220,20 @@ Scalemates has no public API. Its `robots.txt` blocks automated access to search
 Debug builds install as a separate app (`com.sarthak.modelstash.debug`) with their own empty database, so testing never touches your real collection.
 
 ### Release build
-**Build → Generate Signed App Bundle or APK… → APK**, signed with your own key. Keep the `.jks` file and its passwords outside the repository and backed up. Every future update must be signed with the same key.
+1. Raise `versionCode` (by 1) and `versionName` in `app/build.gradle.kts`.
+2. **Build → Generate Signed App Bundle or APK… → APK**, build variant **release**, signed with your own key.
+3. The APK is written to `app/build/outputs/apk/release/app-release.apk`. Copy it out and rename it, e.g. `app/release/model-stash-v1.5.apk` (`app/release/` is git-ignored).
+4. Commit and push the version bump, then create a GitHub release tagged `vX.Y` on `main` with the APK attached.
+
+Keep the `.jks` file and its passwords outside the repository and backed up. Every future update must be signed with the same key, or Android won't install it over the old version.
+
+---
+
+## Releases
+
+| Version | Date | Notes |
+| --- | --- | --- |
+| [1.5](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.5) | November 2026 | First public release on GitHub: catalogue, wishlist, build status, photo carousel with labels, Scalemates link import, CSV import, Midnight and Paper themes. |
 
 ---
 
