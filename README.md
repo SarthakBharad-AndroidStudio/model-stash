@@ -6,6 +6,8 @@ Before you buy a kit, Model Stash answers one question in a second: *do I alread
 
 Everything stays on your phone. There's no account, no server and no ads.
 
+[![Download APK](https://img.shields.io/github/v/release/SarthakBharad-AndroidStudio/model-stash?label=Download%20APK)](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.5)
+
 ---
 
 ## Features
