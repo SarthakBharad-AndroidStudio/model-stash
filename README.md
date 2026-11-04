@@ -84,9 +84,9 @@ Download the newer APK from the Releases page and install it over the existing a
 
 ## Screenshots
 
-| Home | Catalogue | Kit page | Add / edit |
-| --- | --- | --- | --- |
-| *add screenshot* | *add screenshot* | *add screenshot* | *add screenshot* |
+| Dashboard | Catalogue | Kit Details | Add / Edit | Wishlist | Light Mode |
+| --- | --- | --- | --- | --- | --- |
+| <img src="docs/dashboard.png"> | <img src="docs/catalogue.png"> | <img src="docs/kit_details.png"> | <img src="docs/add_edit.png"> | <img src="docs/wishlist.png"> | <img src="docs/dashboard.png"> |
 
 ---
 
