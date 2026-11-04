@@ -21,6 +21,7 @@
         <item name="colorOnError">@color/c_on_error</item>
         <item name="colorErrorContainer">@color/c_error_container</item>
         <item name="colorOnErrorContainer">@color/c_on_error_container</item>
+        <item name="android:windowAnimationStyle">@style/ModelStash.ScreenAnimations</item>
 
         <item name="android:colorBackground">@color/c_background</item>
         <item name="colorOnBackground">@color/c_on_background</item>
@@ -61,6 +62,13 @@
         <item name="textInputStyle">@style/Widget.ModelStash.TextField</item>
         <item name="bottomNavigationStyle">@style/Widget.ModelStash.BottomNav</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.ModelStash.Dialog</item>
+    </style>
+
+    <style name="ModelStash.ScreenAnimations" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/screen_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/screen_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/screen_close_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/screen_close_exit</item>
     </style>
 
     <!-- Plain text defaults to Satoshi; a textAppearance can still switch it to Boska or Tanker -->

@@ -3,48 +3,53 @@ package com.sarthak.modelstash.ui;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityOptionsCompat;
-import androidx.core.view.ViewCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.data.ModelPhoto;
 import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
+import com.sarthak.modelstash.util.Motion;
+import com.sarthak.modelstash.util.PhotoLabel;
 
 import java.io.File;
 import java.text.DateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 /**
- * One model: a large photo that collapses into the toolbar, details below,
- * Edit as a floating button and Delete in the toolbar.
+ * One model: a swipeable photo carousel that collapses into the toolbar, details
+ * below, Edit as a floating button and Delete in the toolbar.
+ *
+ * The screen wipes in over the list like every other screen (see the theme's
+ * windowAnimationStyle). image_photo under the carousel shows the cover, so the
+ * header is never blank while the carousel's first page loads.
  */
 public class ModelDetailActivity extends AppCompatActivity {
 
@@ -53,21 +58,25 @@ public class ModelDetailActivity extends AppCompatActivity {
     private ModelRepository repository;
     private ModelKit current;
     private boolean deleting;
-    private boolean enterTransitionStarted;
+
+    private ViewPager2 pager;
+    private PhotoPagerAdapter pagerAdapter;
+    private View photoOverlay;
+    private TextView photoBadge;
+    private LinearLayout dots;
+    private List<ModelPhoto> photos = Collections.emptyList();
+    /** The details under the photo, and the Edit button: they glide in as the screen wipes in. */
+    private ViewGroup details;
+    private View editFab;
+    private boolean playEntrance;
 
     /**
-     * Opens the detail screen. When sharedPhoto is given, the card's photo
-     * grows smoothly into the big header photo.
+     * Opens the detail screen. sharedPhoto is no longer used (the screen wipes in
+     * instead of growing out of the card's photo); it stays so the callers in the
+     * Catalogue, Home, Wishlist and Brands screens need no change.
      */
     public static void start(Activity from, long modelId, @Nullable ImageView sharedPhoto) {
-        Intent intent = new Intent(from, ModelDetailActivity.class).putExtra(EXTRA_MODEL_ID, modelId);
-        if (sharedPhoto != null && ViewCompat.getTransitionName(sharedPhoto) != null) {
-            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                    from, sharedPhoto, ViewCompat.getTransitionName(sharedPhoto));
-            from.startActivity(intent, options.toBundle());
-        } else {
-            from.startActivity(intent);
-        }
+        from.startActivity(new Intent(from, ModelDetailActivity.class).putExtra(EXTRA_MODEL_ID, modelId));
     }
 
     @Override
@@ -75,8 +84,6 @@ public class ModelDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_model_detail);
-        // Wait for the photo before running the shared-element animation (see startEnterTransition).
-        supportPostponeEnterTransition();
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -95,15 +102,37 @@ public class ModelDetailActivity extends AppCompatActivity {
         TextView added = findViewById(R.id.text_added);
         View descriptionCard = findViewById(R.id.card_description);
         TextView description = findViewById(R.id.text_description);
-        MaterialButton scalematesButton = findViewById(R.id.button_scalemates);
+        View scalematesButton = findViewById(R.id.button_scalemates);
         MaterialButton moveButton = findViewById(R.id.button_move_to_stash);
         ExtendedFloatingActionButton editButton = findViewById(R.id.fab_edit);
         InsetsHelper.liftAboveNavigationBar(editButton);
         InsetsHelper.padForNavigationBar(findViewById(R.id.scroll));
 
+        // First open (not a rotation): the details rise in one after another and
+        // Edit pops in, as soon as the kit has loaded (see playEntrance).
+        details = (ViewGroup) ((ViewGroup) findViewById(R.id.scroll)).getChildAt(0);
+        editFab = editButton;
+        playEntrance = savedInstanceState == null;
+        if (playEntrance) {
+            Motion.prepareStagger(details);
+            Motion.preparePop(editFab);
+        }
+
+        pager = findViewById(R.id.pager_photos);
+        photoOverlay = findViewById(R.id.photo_overlay);
+        photoBadge = findViewById(R.id.text_photo_badge);
+        dots = findViewById(R.id.dots_photos);
+        pagerAdapter = new PhotoPagerAdapter();
+        pager.setAdapter(pagerAdapter);
+        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                showPhotoInfo(position);
+            }
+        });
+
         repository = ModelRepository.get(this);
         long id = getIntent().getLongExtra(EXTRA_MODEL_ID, 0);
-        ViewCompat.setTransitionName(photo, ModelAdapter.photoTransitionName(id));
 
         editButton.setOnClickListener(v -> {
             if (current != null) {
@@ -115,7 +144,6 @@ public class ModelDetailActivity extends AppCompatActivity {
         // Observing (not loading once) means the screen refreshes after you edit the model.
         repository.observe(id).observe(this, model -> {
             if (model == null) {
-                startEnterTransition();
                 finish(); // deleted
                 return;
             }
@@ -128,6 +156,7 @@ public class ModelDetailActivity extends AppCompatActivity {
             scaleChip.setVisibility(model.scale != null ? View.VISIBLE : View.GONE);
             brandChip.setText(model.brand);
             brandChip.setVisibility(model.brand != null ? View.VISIBLE : View.GONE);
+
             // Owned kits carry a build status; wishlist kits don't.
             statusChip.setVisibility(model.wishlist ? View.GONE : View.VISIBLE);
             statusChip.setText(BuildStatus.label(model.buildStatus));
@@ -150,8 +179,102 @@ public class ModelDetailActivity extends AppCompatActivity {
             // Only wishlist kits can be "bought"; the button disappears once they are.
             moveButton.setVisibility(model.wishlist ? View.VISIBLE : View.GONE);
             moveButton.setOnClickListener(v -> moveToStash(model));
+
+            playEntrance(); // after the texts and chips are set, so they rise in filled
+        });
+
+        // All photos, in order. Refreshes by itself after you add, label or reorder them.
+        repository.observePhotos(id).observe(this, list -> {
+            photos = list;
+            pagerAdapter.submitList(list, this::showCarousel);
         });
     }
+
+    // ---- Photo carousel ----
+
+    /** Shows the carousel, its badge and dots once there are photos. */
+    private void showCarousel() {
+        boolean show = !photos.isEmpty();
+        pager.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
+        photoOverlay.setVisibility(show ? View.VISIBLE : View.GONE);
+        buildDots(photos.size());
+        showPhotoInfo(pager.getCurrentItem());
+    }
+
+    /** One dot per photo; hidden when there is only one. */
+    private void buildDots(int count) {
+        dots.removeAllViews();
+        dots.setVisibility(count > 1 ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < count; i++) {
+            View dot = new View(this);
+            dot.setBackgroundResource(R.drawable.bg_photo_dot);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(6), dp(6));
+            params.setMarginStart(i == 0 ? 0 : dp(5));
+            dots.addView(dot, params);
+        }
+    }
+
+    /**
+     * The badge: "Box Art · 2 of 4", just "2 of 4" for an unlabelled photo, just the
+     * label when there is one photo, and nothing at all for a single unlabelled one.
+     * The matching dot is drawn long.
+     */
+    private void showPhotoInfo(int position) {
+        if (photos.isEmpty()) {
+            return;
+        }
+        int at = Math.max(0, Math.min(position, photos.size() - 1));
+        int label = photos.get(at).label;
+        boolean labelled = PhotoLabel.isSet(label);
+        boolean several = photos.size() > 1;
+        String counter = getString(R.string.photo_count, at + 1, photos.size());
+        String text;
+        if (labelled && several) {
+            text = getString(R.string.photo_counter, PhotoLabel.text(this, label), at + 1, photos.size());
+        } else if (labelled) {
+            text = PhotoLabel.text(this, label);
+        } else {
+            text = several ? counter : null;
+        }
+        photoBadge.setText(text);
+        photoBadge.setVisibility(text != null ? View.VISIBLE : View.INVISIBLE);
+        for (int i = 0; i < dots.getChildCount(); i++) {
+            View dot = dots.getChildAt(i);
+            boolean selected = i == at;
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) dot.getLayoutParams();
+            params.width = dp(selected ? 18 : 6);
+            dot.setLayoutParams(params);
+            dot.setAlpha(selected ? 1f : 0.4f);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    // ---- Header photo and entrance ----
+
+    /** The cover, under the carousel: shows while the first page loads, and the placeholder when there are no photos. */
+    private void loadHeaderPhoto(ImageView target, ModelKit model) {
+        File file = model.photoPath != null ? new File(model.photoPath) : null;
+        Glide.with(this)
+                .load(file)
+                .centerCrop()
+                .fallback(R.drawable.ic_image)
+                .error(R.drawable.ic_image)
+                .into(target);
+    }
+
+    /** The details rise in one after another and Edit pops in, once, on the first open. */
+    private void playEntrance() {
+        if (playEntrance) {
+            playEntrance = false;
+            Motion.staggerIn(details, 120);
+            Motion.popIn(editFab, 300);
+        }
+    }
+
+    // ---- Status, menu, delete, links ----
 
     /** Tapping the status chip: pick a stage and it's saved straight away, no Edit screen. */
     private void chooseStatus(ModelKit model) {
@@ -172,41 +295,6 @@ public class ModelDetailActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void loadHeaderPhoto(ImageView target, ModelKit model) {
-        File file = model.photoPath != null ? new File(model.photoPath) : null;
-        Glide.with(this)
-                .load(file)
-                .dontAnimate() // a fade would fight the shared-element animation
-                .centerCrop()
-                .fallback(R.drawable.ic_image)
-                .error(R.drawable.ic_image)
-                .listener(new RequestListener<Drawable>() {
-                    @Override
-                    public boolean onLoadFailed(@Nullable GlideException e, Object glideModel,
-                                                @NonNull Target<Drawable> target, boolean isFirstResource) {
-                        startEnterTransition();
-                        return false;
-                    }
-
-                    @Override
-                    public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object glideModel,
-                                                   Target<Drawable> target, @NonNull DataSource dataSource,
-                                                   boolean isFirstResource) {
-                        startEnterTransition();
-                        return false;
-                    }
-                })
-                .into(target);
-    }
-
-    /** Runs the postponed shared-element animation exactly once. */
-    private void startEnterTransition() {
-        if (!enterTransitionStarted) {
-            enterTransitionStarted = true;
-            supportStartPostponedEnterTransition();
-        }
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_detail, menu);
@@ -224,7 +312,7 @@ public class ModelDetailActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        supportFinishAfterTransition(); // plays the photo animation in reverse
+        finish(); // wipes away to the right, like the back button
         return true;
     }
 

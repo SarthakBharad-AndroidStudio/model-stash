@@ -95,7 +95,7 @@
     <string name="scalemates_helper">Paste a link, or use Share → Model Stash in your browser</string>
     <string name="fetch_details">Fetch details</string>
     <string name="fetched_check_details">Filled in from Scalemates. Check the details and add your own photo.</string>
-    <string name="photo_empty">Add a photo of the box or your build</string>
+    <string name="photo_empty">Add up to 6 photos: the box, the finished build, anything else</string>
     <string name="take_photo">Camera</string>
     <string name="choose_photo">Gallery</string>
     <string name="remove_photo">Remove</string>
@@ -121,7 +121,7 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="delete_title">Delete “%1$s”?</string>
-    <string name="delete_message">The model and its photo will be removed from your stash. This can\'t be undone.</string>
+    <string name="delete_message">The model and its photos will be removed from your stash. This can\'t be undone.</string>
 
     <!-- CSV import -->
     <string name="import_csv">Import CSV</string>
@@ -138,5 +138,24 @@
     <string name="error_not_scalemates">That isn\'t a Scalemates kit link (scalemates.com/kits/…)</string>
     <string name="error_no_camera">No camera app found</string>
     <string name="error_photo_copy">Couldn\'t load that photo</string>
+
+    <!-- Photos -->
+    <string name="photos_heading">Photos</string>
+    <string name="photo_count">%1$d of %2$d</string>
+    <string name="photos_hint">Tap a photo to give it a label. Hold and drag to reorder: the first one is the cover.</string>
+    <string name="photo_add">Add photo</string>
+    <string name="photos_left">%1$d left</string>
+    <string name="photo_cover">Cover</string>
+    <string name="photo_make_cover">Make cover</string>
+    <string name="photo_label_box_art">Box Art</string>
+    <string name="photo_label_finished">Finished Build</string>
+    <string name="photo_label_other">Other</string>
+    <string name="photo_label_none">No label</string>
+    <string name="photo_label_add">Add label</string>
+    <string name="photos_full">A kit holds up to %1$d photos</string>
+    <string name="photos_trimmed">Added %1$d. A kit holds up to %2$d photos</string>
+    <string name="photo_counter">%1$s · %2$d of %3$d</string>
+    <string name="photo_description">%1$s photo</string>
+
 
 </resources>

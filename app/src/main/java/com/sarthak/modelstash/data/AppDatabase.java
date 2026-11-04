@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** The app's single SQLite database file, "model_stash.db". */
-@Database(entities = {ModelKit.class}, version = 4, exportSchema = false)
+@Database(entities = {ModelKit.class, ModelPhoto.class}, version = 5, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** Background threads for database writes and file work (never block the UI thread). */
@@ -49,6 +49,30 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Version 5 moved photos into their own table, up to six per kit. The photo each
+     * kit already had becomes its first (cover) photo, unlabelled (-1): labels are
+     * yours to choose. models.photo_path stays and keeps mirroring the cover, so
+     * every card in the app works as before.
+     */
+    static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `model_photos` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`model_id` INTEGER NOT NULL, "
+                    + "`path` TEXT NOT NULL, "
+                    + "`label` INTEGER NOT NULL, "
+                    + "`position` INTEGER NOT NULL, "
+                    + "FOREIGN KEY(`model_id`) REFERENCES `models`(`id`) "
+                    + "ON UPDATE NO ACTION ON DELETE CASCADE)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_model_photos_model_id` "
+                    + "ON `model_photos` (`model_id`)");
+            db.execSQL("INSERT INTO model_photos (model_id, path, label, position) "
+                    + "SELECT id, photo_path, -1, 0 FROM models WHERE photo_path IS NOT NULL");
+        }
+    };
+
     private static volatile AppDatabase instance;
 
     public abstract ModelDao modelDao();
@@ -58,8 +82,8 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(),
-                                    AppDatabase.class, "model_stash.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            AppDatabase.class, "model_stash.db")
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                             .build();
                 }
             }

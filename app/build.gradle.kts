@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.glide)
     implementation("androidx.core:core-splashscreen:1.0.1") // launch screen with the logo
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -67,6 +67,22 @@ public interface ModelDao {
     @Query("SELECT COUNT(*) FROM models WHERE wishlist = 1")
     LiveData<Integer> wishlistCount();
 
+    // --- Photos (model_photos), in the order you arranged them ---
+
+    @Query("SELECT * FROM model_photos WHERE model_id = :modelId ORDER BY position")
+    LiveData<List<ModelPhoto>> observePhotos(long modelId);
+
+    @Query("SELECT * FROM model_photos WHERE model_id = :modelId ORDER BY position")
+    List<ModelPhoto> getPhotos(long modelId);
+
+    @Insert
+    void insertPhotos(List<ModelPhoto> photos);
+
+    @Query("DELETE FROM model_photos WHERE model_id = :modelId")
+    void deletePhotos(long modelId);
+
+    // --- One model ---
+
     @Query("SELECT * FROM models WHERE id = :id")
     LiveData<ModelKit> observeById(long id);
 

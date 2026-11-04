@@ -1,48 +1,72 @@
 package com.sarthak.modelstash;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.net.Uri;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.splashscreen.SplashScreen;
-import androidx.fragment.app.Fragment;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
+import androidx.core.widget.NestedScrollView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-
-import com.sarthak.modelstash.ui.AddEditModelActivity;
-import com.sarthak.modelstash.ui.CatalogueFragment;
-import com.sarthak.modelstash.ui.DashboardFragment;
-import com.sarthak.modelstash.util.Haptics;
-import com.sarthak.modelstash.util.InsetsHelper;
-import com.sarthak.modelstash.util.ThemePrefs;
-import com.sarthak.modelstash.ui.WishlistFragment;
 import com.sarthak.modelstash.data.AppDatabase;
 import com.sarthak.modelstash.data.ModelKit;
 import com.sarthak.modelstash.data.ModelRepository;
+import com.sarthak.modelstash.ui.AddEditModelActivity;
+import com.sarthak.modelstash.ui.CatalogueFragment;
+import com.sarthak.modelstash.ui.DashboardFragment;
+import com.sarthak.modelstash.ui.WishlistFragment;
 import com.sarthak.modelstash.util.CsvImport;
+import com.sarthak.modelstash.util.Haptics;
+import com.sarthak.modelstash.util.InsetsHelper;
+import com.sarthak.modelstash.util.ThemePrefs;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.List;
 
-/** Home screen: toolbar with logo, the current tab, the "Add model" button and the bottom bar. */
+/**
+ * Home screen: toolbar with logo, the current tab, the "Add model" button and the bottom bar.
+ *
+ * Back on the Catalogue or Wishlist tab returns to Home; back on Home closes the app.
+ * A new tab wipes in over the old one from the side it sits on in the bottom bar,
+ * and tapping the tab you're already on scrolls it back to the top.
+ */
 public class MainActivity extends AppCompatActivity {
+
+    private static final String STATE_TAB = "tab";
 
     private BottomNavigationView bottomNav;
     private ExtendedFloatingActionButton fab;
+    private AppBarLayout appBar;
+    /** The tab on screen: R.id.nav_dashboard, nav_catalogue or nav_wishlist. */
+    @IdRes
+    private int currentTab = R.id.nav_dashboard;
     /** True while the Wishlist tab is showing: the + button then adds a wanted kit. */
     private boolean onWishlistTab;
 
@@ -54,6 +78,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    /**
+     * Back on any tab but Home goes to Home instead of closing the app. It's only
+     * switched on while another tab is showing, so on Home, back behaves normally.
+     */
+    private final OnBackPressedCallback backToHome = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            bottomNav.setSelectedItemId(R.id.nav_dashboard);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this); // must come before super.onCreate
@@ -64,10 +99,13 @@ public class MainActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        getSupportActionBar().setDisplayShowTitleEnabled(false); // our own logo + title are in the layout
 
+        appBar = findViewById(R.id.app_bar);
         fab = findViewById(R.id.fab_add);
-        fab.setOnClickListener(v -> openAddScreen());
+        fab.setOnClickListener(v -> openAddScreen(onWishlistTab));
+
+        getOnBackPressedDispatcher().addCallback(this, backToHome);
 
         bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -75,12 +113,22 @@ public class MainActivity extends AppCompatActivity {
             showTab(item.getItemId());
             return true;
         });
-        bottomNav.setOnItemReselectedListener(item -> {
-            // Already on this tab: do nothing instead of rebuilding it.
-        });
+        // Already on this tab: glide back to the top instead of rebuilding it.
+        bottomNav.setOnItemReselectedListener(item -> scrollCurrentTabToTop());
+
         if (savedInstanceState == null) {
-            showTab(R.id.nav_dashboard); // after rotation the FragmentManager restores the tab itself
+            showTab(R.id.nav_dashboard);
+        } else {
+            // After rotation the FragmentManager restores the fragment itself;
+            // only our own notes about which tab it is need restoring.
+            applyTabState(savedInstanceState.getInt(STATE_TAB, R.id.nav_dashboard), false);
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_TAB, currentTab);
     }
 
     @Override
@@ -103,7 +151,9 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /** Lets the dashboard's "See all" button switch to the Catalogue tab. */
+    // ---- Called by the fragments ----
+
+    /** Lets the dashboard's "See all" button and stat cards switch to the Catalogue tab. */
     public void openCatalogue() {
         bottomNav.setSelectedItemId(R.id.nav_catalogue);
     }
@@ -112,7 +162,10 @@ public class MainActivity extends AppCompatActivity {
         openAddScreen(onWishlistTab);
     }
 
-    /** wishlist = true adds to the Wishlist instead of the owned catalogue. */
+    /**
+     * wishlist = true adds to the Wishlist instead of the owned catalogue. The add
+     * screen wipes in over this one, like every other screen (see the theme).
+     */
     public void openAddScreen(boolean wishlist) {
         startActivity(new Intent(this, AddEditModelActivity.class)
                 .putExtra(AddEditModelActivity.EXTRA_WISHLIST, wishlist));
@@ -127,7 +180,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showTab(int itemId) {
+    // ---- Tabs ----
+
+    private void showTab(@IdRes int itemId) {
         Fragment fragment;
         if (itemId == R.id.nav_catalogue) {
             fragment = new CatalogueFragment();
@@ -136,15 +191,119 @@ public class MainActivity extends AppCompatActivity {
         } else {
             fragment = new DashboardFragment();
         }
-        onWishlistTab = itemId == R.id.nav_wishlist;
-        fab.setText(onWishlistTab ? R.string.add_to_wishlist : R.string.add_model);
-        getSupportFragmentManager()
+
+        // Wipe: the new tab slides in over the old one, which drifts a little the other
+        // way and dims. It comes from the right when the tab sits to the right of the
+        // current one in the bottom bar, and from the left otherwise, so the motion
+        // always matches where your finger went. (FragmentContainerView draws the
+        // incoming tab on top.)
+        FragmentTransaction transaction = getSupportFragmentManager()
                 .beginTransaction()
-                .setCustomAnimations(R.anim.tab_enter, R.anim.tab_exit)
-                .replace(R.id.fragment_container, fragment)
-                .commit();
-        fab.extend();
+                .setReorderingAllowed(true);
+        boolean firstTab = getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null;
+        if (!firstTab) { // the app's very first screen just appears; the splash screen hands over to it
+            boolean forward = tabIndex(itemId) >= tabIndex(currentTab);
+            transaction.setCustomAnimations(
+                    forward ? R.anim.tab_wipe_in_from_right : R.anim.tab_wipe_in_from_left,
+                    forward ? R.anim.tab_wipe_out_to_left : R.anim.tab_wipe_out_to_right);
+        }
+        transaction.replace(R.id.fragment_container, fragment).commit();
+
+        appBar.setExpanded(true, true);
+        applyTabState(itemId, true);
     }
+
+    /** Position in the bottom bar: Home 0, Catalogue 1, Wishlist 2. */
+    private static int tabIndex(@IdRes int itemId) {
+        if (itemId == R.id.nav_catalogue) {
+            return 1;
+        }
+        if (itemId == R.id.nav_wishlist) {
+            return 2;
+        }
+        return 0;
+    }
+
+    /** Back-button behaviour, the + button's label and the Wishlist flag for one tab. */
+    private void applyTabState(@IdRes int itemId, boolean animate) {
+        currentTab = itemId;
+        onWishlistTab = itemId == R.id.nav_wishlist;
+        backToHome.setEnabled(itemId != R.id.nav_dashboard);
+        setFabText(onWishlistTab ? R.string.add_to_wishlist : R.string.add_model, animate);
+    }
+
+    /**
+     * Changes the + button's label. Instead of the button jumping to its new width,
+     * it shrinks to a circle, swaps the text and grows back out.
+     */
+    private void setFabText(@StringRes int text, boolean animate) {
+        CharSequence wanted = getText(text);
+        if (TextUtils.equals(fab.getText(), wanted)) {
+            fab.extend();
+            return;
+        }
+        if (!animate || !fab.isExtended()) {
+            fab.setText(wanted);
+            fab.extend();
+            return;
+        }
+        fab.shrink(new ExtendedFloatingActionButton.OnChangedCallback() {
+            @Override
+            public void onShrunken(ExtendedFloatingActionButton button) {
+                button.setText(wanted);
+                button.extend();
+            }
+        });
+    }
+
+    /** Smoothly scrolls the visible tab back to its top, and brings the toolbar and + button back. */
+    private void scrollCurrentTabToTop() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        View root = fragment != null ? fragment.getView() : null;
+        View scrollable = root != null ? findMainScroller(root) : null;
+        if (scrollable instanceof RecyclerView) {
+            ((RecyclerView) scrollable).smoothScrollToPosition(0);
+        } else if (scrollable instanceof NestedScrollView) {
+            ((NestedScrollView) scrollable).smoothScrollTo(0, 0);
+        }
+        appBar.setExpanded(true, true);
+        fab.extend();
+        Haptics.tick(bottomNav);
+    }
+
+    /**
+     * The tab's main vertical scroller: the first NestedScrollView or vertical
+     * RecyclerView, searching level by level, so the Home tab's sideways
+     * carousels inside its scroll view are never picked by mistake.
+     */
+    @Nullable
+    private static View findMainScroller(View root) {
+        ArrayDeque<View> queue = new ArrayDeque<>();
+        queue.add(root);
+        while (!queue.isEmpty()) {
+            View view = queue.poll();
+            if (view instanceof NestedScrollView) {
+                return view;
+            }
+            if (view instanceof RecyclerView) {
+                RecyclerView.LayoutManager lm = ((RecyclerView) view).getLayoutManager();
+                boolean horizontal = lm instanceof LinearLayoutManager
+                        && ((LinearLayoutManager) lm).getOrientation() == RecyclerView.HORIZONTAL;
+                if (!horizontal) {
+                    return view;
+                }
+            }
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) {
+                    queue.add(group.getChildAt(i));
+                }
+            }
+        }
+        return null;
+    }
+
+    // ---- CSV import ----
 
     /** Reads the chosen CSV in the background and adds every row it understands. */
     private void importCsv(Uri uri) {
@@ -181,6 +340,8 @@ public class MainActivity extends AppCompatActivity {
     private void showImportMessage(String message) {
         Snackbar.make(findViewById(R.id.main), message, Snackbar.LENGTH_LONG).show();
     }
+
+    // ---- Appearance ----
 
     private void chooseAppearance() {
         String[] options = {

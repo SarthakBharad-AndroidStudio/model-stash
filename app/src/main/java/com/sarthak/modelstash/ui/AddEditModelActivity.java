@@ -6,8 +6,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Menu;
 import android.view.View;
-import android.widget.ImageView;
+import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,9 +18,9 @@ import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
@@ -37,16 +39,21 @@ import com.sarthak.modelstash.scalemates.ScalematesParser;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
+import com.sarthak.modelstash.util.Motion;
+import com.sarthak.modelstash.util.PhotoDraft;
+import com.sarthak.modelstash.util.PhotoLabel;
 import com.sarthak.modelstash.util.PhotoStorage;
 import com.sarthak.modelstash.util.ScaleFormat;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Adds a new model, or edits one when started with EXTRA_MODEL_ID.
  * Also receives links shared from the browser ("Share -> Model Stash").
+ * Holds up to six photos, each labelled by you; the first one is the cover.
  */
 public class AddEditModelActivity extends AppCompatActivity {
 
@@ -55,7 +62,8 @@ public class AddEditModelActivity extends AppCompatActivity {
     /** true = the new model goes on the Wishlist instead of the owned catalogue. */
     public static final String EXTRA_WISHLIST = "wishlist";
 
-    private static final String STATE_PHOTO = "photo";
+    private static final String STATE_PHOTO_PATHS = "photo_paths";
+    private static final String STATE_PHOTO_LABELS = "photo_labels";
     private static final String STATE_PENDING_CAMERA = "pending_camera";
     private static final String STATE_NEW_PHOTOS = "new_photos";
     private static final String STATE_SCALEMATES_OPEN = "scalemates_open";
@@ -71,15 +79,18 @@ public class AddEditModelActivity extends AppCompatActivity {
     private TextInputEditText scaleInput;
     private TextInputEditText brandInput;
     private TextInputEditText kitNumberInput;
+    private TextInputEditText descriptionInput;
     private ChipGroup statusChips;
     private View statusGroup;
-    private TextInputEditText descriptionInput;
-    private ImageView photoView;
-    private MaterialButton removePhotoButton;
+    private MaterialButton cameraButton;
+    private MaterialButton galleryButton;
     private MaterialButton fetchButton;
     private MaterialButton saveButton;
     private LinearProgressIndicator fetchProgress;
-    private View photoEmpty;
+    private View photoEmptyCard;
+    private RecyclerView photoList;
+    private View photosHint;
+    private TextView photoCount;
     private View scalematesBody;
     private View expandIcon;
 
@@ -87,17 +98,17 @@ public class AddEditModelActivity extends AppCompatActivity {
     /** The model being edited, or null when adding a new one. */
     @Nullable
     private ModelKit editing;
-    /** The photo currently shown (may not be saved yet). */
-    @Nullable
-    private String photoPath;
+    /** The photos as they stand on screen (may not be saved yet). */
+    private final PhotoDraft draft = new PhotoDraft();
+    private PhotoStripAdapter photoAdapter;
     /** File the camera app is writing into right now. */
     @Nullable
     private String pendingCameraPath;
     /** Photos created on this screen; the unused ones are deleted when leaving. */
     private ArrayList<String> newPhotos = new ArrayList<>();
+    private boolean saved;
     /** Adding a wanted kit rather than an owned one. */
     private boolean wishlistMode;
-    private boolean saved;
 
     private final ActivityResultLauncher<Uri> takePicture =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
@@ -105,19 +116,21 @@ public class AddEditModelActivity extends AppCompatActivity {
                     return;
                 }
                 if (Boolean.TRUE.equals(success)) {
-                    showPhoto(pendingCameraPath);
+                    addPhoto(pendingCameraPath);
                 } else {
                     PhotoStorage.delete(pendingCameraPath); // cancelled: remove the empty file
                 }
                 pendingCameraPath = null;
             });
 
-    private final ActivityResultLauncher<PickVisualMediaRequest> pickPhoto =
-            registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-                if (uri != null) {
-                    copyPickedPhoto(uri);
-                }
-            });
+    /** The system photo picker, allowing several at once; extras beyond six are dropped. */
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickPhotos =
+            registerForActivityResult(new ActivityResultContracts.PickMultipleVisualMedia(PhotoDraft.MAX_PHOTOS),
+                    uris -> {
+                        if (uris != null && !uris.isEmpty()) {
+                            copyPickedPhotos(uris);
+                        }
+                    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,15 +157,40 @@ public class AddEditModelActivity extends AppCompatActivity {
         statusChips = findViewById(R.id.chips_status);
         statusGroup = findViewById(R.id.group_status);
         descriptionInput = findViewById(R.id.input_description);
-        photoView = findViewById(R.id.image_photo);
-        removePhotoButton = findViewById(R.id.button_remove_photo);
+        cameraButton = findViewById(R.id.button_camera);
+        galleryButton = findViewById(R.id.button_gallery);
         fetchButton = findViewById(R.id.button_fetch);
         saveButton = findViewById(R.id.button_save);
         fetchProgress = findViewById(R.id.progress_fetch);
-        photoEmpty = findViewById(R.id.photo_empty);
+        photoEmptyCard = findViewById(R.id.card_photo);
+        photoList = findViewById(R.id.list_photos);
+        photosHint = findViewById(R.id.text_photos_hint);
+        photoCount = findViewById(R.id.text_photo_count);
         scalematesBody = findViewById(R.id.body_scalemates);
         expandIcon = findViewById(R.id.icon_expand);
         repository = ModelRepository.get(this);
+
+        photoAdapter = new PhotoStripAdapter(draft, new PhotoStripAdapter.Listener() {
+            @Override
+            public void onPhotoClick(int position, View anchor) {
+                showPhotoMenu(position, anchor);
+            }
+
+            @Override
+            public void onAddClick() {
+                launchGallery();
+            }
+        });
+        photoList.setAdapter(photoAdapter);
+        photoList.setItemAnimator(new androidx.recyclerview.widget.DefaultItemAnimator() {
+            {
+                setAddDuration(260);
+                setRemoveDuration(200);
+                setMoveDuration(320);
+                setChangeDuration(180);
+            }
+        });
+        photoAdapter.dragHelper().attachToRecyclerView(photoList);
 
         findViewById(R.id.header_scalemates).setOnClickListener(v ->
                 setScalematesOpen(scalematesBody.getVisibility() != View.VISIBLE));
@@ -162,12 +200,18 @@ public class AddEditModelActivity extends AppCompatActivity {
         clearErrorWhenEdited(nameLayout, nameInput);
         clearErrorWhenEdited(scaleLayout, scaleInput);
 
-        findViewById(R.id.button_camera).setOnClickListener(v -> launchCamera());
-        findViewById(R.id.button_gallery).setOnClickListener(v -> launchGallery());
-        findViewById(R.id.card_photo).setOnClickListener(v -> launchGallery());
-        removePhotoButton.setOnClickListener(v -> showPhoto(null));
+        cameraButton.setOnClickListener(v -> launchCamera());
+        galleryButton.setOnClickListener(v -> launchGallery());
+        photoEmptyCard.setOnClickListener(v -> launchGallery());
         fetchButton.setOnClickListener(v -> fetchFromScalemates());
         saveButton.setOnClickListener(v -> save());
+
+        // First open: the form's sections rise in one after another.
+        ViewGroup form = findViewById(R.id.form);
+        if (savedInstanceState == null) {
+            Motion.prepareStagger(form);
+            form.post(() -> Motion.staggerIn(form, 60));
+        }
 
         if (savedInstanceState != null) {
             // Rotation or the system restarting the app while the camera was open.
@@ -177,6 +221,8 @@ public class AddEditModelActivity extends AppCompatActivity {
             if (restored != null) {
                 newPhotos = restored;
             }
+            draft.restore(savedInstanceState.getStringArrayList(STATE_PHOTO_PATHS),
+                    savedInstanceState.getIntArray(STATE_PHOTO_LABELS));
             setScalematesOpen(savedInstanceState.getBoolean(STATE_SCALEMATES_OPEN));
         }
 
@@ -184,8 +230,8 @@ public class AddEditModelActivity extends AppCompatActivity {
         if (modelId != 0) {
             setTitle(R.string.title_edit_model);
             saveButton.setText(R.string.save_changes);
-            saveButton.setEnabled(false); // until the model has loaded
-            repository.load(modelId, model -> {
+            saveButton.setEnabled(false); // until the model and its photos have loaded
+            repository.loadWithPhotos(modelId, (model, photos) -> {
                 if (model == null) {
                     finish(); // deleted in the meantime
                     return;
@@ -193,6 +239,8 @@ public class AddEditModelActivity extends AppCompatActivity {
                 editing = model;
                 if (savedInstanceState == null) {
                     fillForm(model);
+                    draft.setAll(photos);
+                    refreshPhotos();
                 }
                 saveButton.setEnabled(true);
             });
@@ -206,17 +254,14 @@ public class AddEditModelActivity extends AppCompatActivity {
             }
         }
 
-        if (savedInstanceState != null) {
-            showPhoto(savedInstanceState.getString(STATE_PHOTO));
-        } else if (modelId == 0) {
-            showPhoto(null);
-        }
+        refreshPhotos();
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString(STATE_PHOTO, photoPath);
+        outState.putStringArrayList(STATE_PHOTO_PATHS, draft.paths());
+        outState.putIntArray(STATE_PHOTO_LABELS, draft.labels());
         outState.putString(STATE_PENDING_CAMERA, pendingCameraPath);
         outState.putStringArrayList(STATE_NEW_PHOTOS, newPhotos);
         outState.putBoolean(STATE_SCALEMATES_OPEN, scalematesBody.getVisibility() == View.VISIBLE);
@@ -269,7 +314,6 @@ public class AddEditModelActivity extends AppCompatActivity {
         descriptionInput.setText(model.description);
         linkInput.setText(model.sourceUrl);
         setScalematesOpen(model.sourceUrl != null);
-        showPhoto(model.photoPath);
     }
 
     private void applyKitInfo(KitInfo info) {
@@ -337,12 +381,20 @@ public class AddEditModelActivity extends AppCompatActivity {
     // ---- Photos ----
 
     private void launchGallery() {
-        pickPhoto.launch(new PickVisualMediaRequest.Builder()
+        if (draft.isFull()) {
+            showPhotosFull();
+            return;
+        }
+        pickPhotos.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
     }
 
     private void launchCamera() {
+        if (draft.isFull()) {
+            showPhotosFull();
+            return;
+        }
         File file = PhotoStorage.newPhotoFile(this);
         pendingCameraPath = file.getAbsolutePath();
         newPhotos.add(pendingCameraPath);
@@ -354,39 +406,107 @@ public class AddEditModelActivity extends AppCompatActivity {
         }
     }
 
-    private void copyPickedPhoto(Uri uri) {
+    /** Copies the picked images into private storage, one after another, keeping as many as fit. */
+    private void copyPickedPhotos(List<Uri> uris) {
+        int fits = Math.min(uris.size(), draft.remaining());
+        if (fits < uris.size()) {
+            Toast.makeText(this, getString(R.string.photos_trimmed, fits, PhotoDraft.MAX_PHOTOS),
+                    Toast.LENGTH_LONG).show();
+        }
+        List<Uri> wanted = new ArrayList<>(uris.subList(0, fits));
         AppDatabase.IO.execute(() -> {
-            try {
-                String path = PhotoStorage.copyFromUri(getApplicationContext(), uri).getAbsolutePath();
-                runOnUiThread(() -> {
-                    if (isDestroyed()) {
-                        PhotoStorage.delete(path); // screen already closed (or rotated): nobody will use it
-                        return;
-                    }
-                    newPhotos.add(path);
-                    showPhoto(path);
-                });
-            } catch (IOException e) {
-                runOnUiThread(() -> Toast.makeText(getApplicationContext(),
-                        R.string.error_photo_copy, Toast.LENGTH_SHORT).show());
+            for (Uri uri : wanted) {
+                try {
+                    String path = PhotoStorage.copyFromUri(getApplicationContext(), uri).getAbsolutePath();
+                    runOnUiThread(() -> {
+                        if (isDestroyed()) {
+                            PhotoStorage.delete(path); // screen already closed (or rotated): nobody will use it
+                            return;
+                        }
+                        newPhotos.add(path);
+                        addPhoto(path);
+                    });
+                } catch (IOException e) {
+                    runOnUiThread(() -> Toast.makeText(getApplicationContext(),
+                            R.string.error_photo_copy, Toast.LENGTH_SHORT).show());
+                }
             }
         });
     }
 
-    private void showPhoto(@Nullable String path) {
-        photoPath = path;
-        removePhotoButton.setVisibility(path == null ? View.GONE : View.VISIBLE);
-        photoEmpty.setVisibility(path == null ? View.VISIBLE : View.GONE);
-        if (path == null) {
-            Glide.with(this).clear(photoView);
-            photoView.setImageDrawable(null);
+    /** Adds a new, unlabelled photo; you choose its label by tapping the tile. */
+    private void addPhoto(String path) {
+        if (!draft.add(path)) {
+            PhotoStorage.delete(path); // no room left (two picks raced each other)
             return;
         }
-        Glide.with(this)
-                .load(new File(path))
-                .centerCrop()
-                .transition(DrawableTransitionOptions.withCrossFade(200))
-                .into(photoView);
+        photoAdapter.photoAdded();
+        refreshPhotoChrome();
+        photoList.post(() -> photoList.smoothScrollToPosition(Math.max(0, photoAdapter.getItemCount() - 1)));
+    }
+
+    /** Tapping a tile: choose or clear its label, make it the cover, or remove it. */
+    private void showPhotoMenu(int position, View anchor) {
+        PopupMenu menu = new PopupMenu(this, anchor);
+        menu.getMenuInflater().inflate(R.menu.menu_photo, menu.getMenu());
+        Menu items = menu.getMenu();
+        int current = draft.get(position).label;
+        items.findItem(R.id.label_box_art).setChecked(current == PhotoLabel.BOX_ART);
+        items.findItem(R.id.label_finished).setChecked(current == PhotoLabel.FINISHED_BUILD);
+        items.findItem(R.id.label_other).setChecked(current == PhotoLabel.OTHER);
+        items.findItem(R.id.label_none).setChecked(!PhotoLabel.isSet(current));
+        items.findItem(R.id.action_make_cover).setVisible(position != 0);
+        menu.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.label_box_art) {
+                draft.setLabel(position, PhotoLabel.BOX_ART);
+                photoAdapter.photoChanged(position);
+            } else if (id == R.id.label_finished) {
+                draft.setLabel(position, PhotoLabel.FINISHED_BUILD);
+                photoAdapter.photoChanged(position);
+            } else if (id == R.id.label_other) {
+                draft.setLabel(position, PhotoLabel.OTHER);
+                photoAdapter.photoChanged(position);
+            } else if (id == R.id.label_none) {
+                draft.setLabel(position, PhotoLabel.NONE);
+                photoAdapter.photoChanged(position);
+            } else if (id == R.id.action_make_cover) {
+                draft.makeCover(position);
+                photoAdapter.photoMadeCover(position);
+                photoList.smoothScrollToPosition(0);
+            } else if (id == R.id.action_remove_photo) {
+                boolean wasFull = draft.isFull();
+                draft.remove(position); // the file itself is tidied up on save or when leaving
+                photoAdapter.photoRemoved(position, wasFull);
+            } else {
+                return false;
+            }
+            Haptics.tick(anchor);
+            refreshPhotoChrome();
+            return true;
+        });
+        menu.show();
+    }
+
+    /** Redraws the whole strip (after loading or restoring), then the counter and buttons. */
+    private void refreshPhotos() {
+        photoAdapter.notifyDataSetChanged(); // a whole new set of photos: nothing to animate between
+        refreshPhotoChrome();
+    }
+
+    /** The empty card or the strip, the counter and the buttons. The tiles animate themselves. */
+    private void refreshPhotoChrome() {
+        boolean empty = draft.isEmpty();
+        photoEmptyCard.setVisibility(empty ? View.VISIBLE : View.GONE);
+        photoList.setVisibility(empty ? View.GONE : View.VISIBLE);
+        photosHint.setVisibility(empty ? View.GONE : View.VISIBLE);
+        photoCount.setText(getString(R.string.photo_count, draft.size(), PhotoDraft.MAX_PHOTOS));
+        cameraButton.setEnabled(!draft.isFull());
+        galleryButton.setEnabled(!draft.isFull());
+    }
+
+    private void showPhotosFull() {
+        Toast.makeText(this, getString(R.string.photos_full, PhotoDraft.MAX_PHOTOS), Toast.LENGTH_SHORT).show();
     }
 
     // ---- Saving ----
@@ -406,32 +526,29 @@ public class AddEditModelActivity extends AppCompatActivity {
         }
 
         ModelKit model = editing != null ? editing : new ModelKit();
-        String previousPhoto = model.photoPath;
         model.name = name;
         model.scale = emptyToNull(scale);
         model.brand = emptyToNull(text(brandInput));
         model.kitNumber = emptyToNull(text(kitNumberInput));
         model.description = emptyToNull(text(descriptionInput));
-        model.photoPath = photoPath;
         model.sourceUrl = ScalematesParser.extractKitUrl(text(linkInput));
         // Editing keeps the list it is already on; adding uses the tab you came from.
         model.wishlist = editing != null ? editing.wishlist : wishlistMode;
         // A wishlist kit has no build status; it starts at Unbuilt when you buy it.
         model.buildStatus = model.wishlist ? BuildStatus.UNBUILT : checkedStatus();
+        // model.photoPath is set by the repository: it is always the first photo (the cover).
 
         saved = true;
         saveButton.setEnabled(false);
         Haptics.confirm(saveButton);
-        final String keptPhoto = photoPath;
-        repository.save(model, () -> {
-            // Clean up photos that were replaced or never used.
+        final List<String> kept = draft.paths();
+        repository.save(model, draft.toPhotos(), () -> {
+            // Photos taken or picked here but removed again before saving.
+            // (Saved photos you removed are deleted by the repository.)
             for (String path : newPhotos) {
-                if (!path.equals(keptPhoto)) {
+                if (!kept.contains(path)) {
                     PhotoStorage.delete(path);
                 }
-            }
-            if (previousPhoto != null && !previousPhoto.equals(keptPhoto)) {
-                PhotoStorage.delete(previousPhoto);
             }
             finish();
         });

@@ -129,50 +129,84 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 2. Photo: tap the card to pick from the gallery -->
+            <!-- 2. Photos: up to six, each labelled; the first one is the cover -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/photos_heading"
+                    android:textAppearance="@style/TextAppearance.ModelStash.Overline"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                <TextView
+                    android:id="@+id/text_photo_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
+            <!-- Shown while there are no photos: tap it to pick from the gallery -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_photo"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="16dp"
+                android:layout_height="180dp"
                 app:cardCornerRadius="24dp">
 
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-
-                    <LinearLayout
-                        android:id="@+id/photo_empty"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:gravity="center_horizontal"
-                        android:orientation="vertical">
-
-                        <ImageView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:alpha="0.7"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_image" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="@string/photo_empty"
-                            android:textAppearance="?attr/textAppearanceBodyMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/photo_empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="24dp">
 
                     <ImageView
-                        android:id="@+id/image_photo"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/model_photo"
-                        android:scaleType="centerCrop" />
-                </FrameLayout>
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:alpha="0.7"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_image" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/photo_empty"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Shown once there is a photo: one tile each, then "Add photo" while there's room -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/list_photos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:overScrollMode="never"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <TextView
+                android:id="@+id/text_photos_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/photos_hint"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -198,15 +232,6 @@
                     android:layout_weight="1"
                     android:text="@string/choose_photo"
                     app:icon="@drawable/ic_gallery" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/button_remove_photo"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="@string/remove_photo"
-                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- 3. Details -->
