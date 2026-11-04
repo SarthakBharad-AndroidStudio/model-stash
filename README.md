@@ -110,15 +110,15 @@ Download the newer APK from the Releases page and install it over the existing a
 
 ```mermaid
 flowchart TD
-    UI["Activities & Fragments<br/>Home · Catalogue · Wishlist · Brands · Detail · Add/Edit"] --> VM["MainViewModel<br/>(LiveData)"]
-    UI --> REPO[ModelRepository]
-    VM --> REPO
-    REPO --> DAO["ModelDao (Room)"]
-    DAO --> DB1[("models")]
-    DAO --> DB2[("model_photos")]
-    REPO --> PS["PhotoStorage<br/>files/photos/*.jpg"]
-    UI --> SM["ScalematesFetcher<br/>+ ScalematesParser"]
-    UI --> CSV["CsvImport"]
+   UI["Activities & Fragments<br/>Home · Catalogue · Wishlist · Brands · Detail · Add/Edit"] --> VM["MainViewModel<br/>(LiveData)"]
+   UI --> REPO[ModelRepository]
+   VM --> REPO
+   REPO --> DAO["ModelDao (Room)"]
+   DAO --> DB1[("models")]
+   DAO --> DB2[("model_photos")]
+   REPO --> PS["PhotoStorage<br/>files/photos/*.jpg"]
+   UI --> SM["ScalematesFetcher<br/>+ ScalematesParser"]
+   UI --> CSV["CsvImport"]
 ```
 
 - Screens never touch the database directly. They go through `ModelRepository`, which does all writes on a background thread.
