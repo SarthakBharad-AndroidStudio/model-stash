@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The screen being covered drifts a little left and dims, so the new one reads as on top. -->
+<!-- The screen being covered drifts left and darkens slightly underneath the new one. -->
 <set xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="360"
+    android:duration="320"
     android:interpolator="@android:interpolator/fast_out_slow_in"
-    android:shareInterpolator="true">
+    android:shareInterpolator="true"
+    android:zAdjustment="bottom">
     <translate
         android:fromXDelta="0"
-        android:toXDelta="-25%" />
+        android:toXDelta="-30%" />
     <alpha
         android:fromAlpha="1"
-        android:toAlpha="0.6" />
+        android:toAlpha="0.8" />
 </set>

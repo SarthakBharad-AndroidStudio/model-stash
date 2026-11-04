@@ -8,7 +8,6 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,7 +38,6 @@ import com.sarthak.modelstash.scalemates.ScalematesParser;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
-import com.sarthak.modelstash.util.Motion;
 import com.sarthak.modelstash.util.PhotoDraft;
 import com.sarthak.modelstash.util.PhotoLabel;
 import com.sarthak.modelstash.util.PhotoStorage;
@@ -205,13 +203,6 @@ public class AddEditModelActivity extends AppCompatActivity {
         photoEmptyCard.setOnClickListener(v -> launchGallery());
         fetchButton.setOnClickListener(v -> fetchFromScalemates());
         saveButton.setOnClickListener(v -> save());
-
-        // First open: the form's sections rise in one after another.
-        ViewGroup form = findViewById(R.id.form);
-        if (savedInstanceState == null) {
-            Motion.prepareStagger(form);
-            form.post(() -> Motion.staggerIn(form, 60));
-        }
 
         if (savedInstanceState != null) {
             // Rotation or the system restarting the app while the camera was open.

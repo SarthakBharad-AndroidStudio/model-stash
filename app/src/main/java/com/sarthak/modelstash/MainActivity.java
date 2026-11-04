@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -89,6 +91,35 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * Makes every tab wipe in as one solid sheet. Each tab's root gets the page
+     * colour, so the old tab can't show through the new one while it slides, and
+     * the cards' rise-in-one-by-one layout animation is switched off, so nothing
+     * inside the tab moves on its own during the wipe.
+     */
+    private final FragmentManager.FragmentLifecycleCallbacks solidTabs =
+            new FragmentManager.FragmentLifecycleCallbacks() {
+                @Override
+                public void onFragmentViewCreated(@NonNull FragmentManager fm, @NonNull Fragment f,
+                                                  @NonNull View v, @Nullable Bundle savedInstanceState) {
+                    if (v.getBackground() == null) {
+                        v.setBackgroundColor(MaterialColors.getColor(v, android.R.attr.colorBackground));
+                    }
+                    clearLayoutAnimations(v);
+                }
+            };
+
+    /** Removes android:layoutAnimation from a view tree; scheduleLayoutAnimation() then does nothing. */
+    private static void clearLayoutAnimations(View view) {
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            group.setLayoutAnimation(null);
+            for (int i = 0; i < group.getChildCount(); i++) {
+                clearLayoutAnimations(group.getChildAt(i));
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this); // must come before super.onCreate
@@ -106,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(v -> openAddScreen(onWishlistTab));
 
         getOnBackPressedDispatcher().addCallback(this, backToHome);
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(solidTabs, false);
 
         bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -192,8 +224,8 @@ public class MainActivity extends AppCompatActivity {
             fragment = new DashboardFragment();
         }
 
-        // Wipe: the new tab slides in over the old one, which drifts a little the other
-        // way and dims. It comes from the right when the tab sits to the right of the
+        // Wipe: the whole new tab slides in over the old one, which drifts a little the
+        // other way. It comes from the right when the tab sits to the right of the
         // current one in the bottom bar, and from the left otherwise, so the motion
         // always matches where your finger went. (FragmentContainerView draws the
         // incoming tab on top.)

@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -34,7 +33,6 @@ import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
-import com.sarthak.modelstash.util.Motion;
 import com.sarthak.modelstash.util.PhotoLabel;
 
 import java.io.File;
@@ -65,10 +63,6 @@ public class ModelDetailActivity extends AppCompatActivity {
     private TextView photoBadge;
     private LinearLayout dots;
     private List<ModelPhoto> photos = Collections.emptyList();
-    /** The details under the photo, and the Edit button: they glide in as the screen wipes in. */
-    private ViewGroup details;
-    private View editFab;
-    private boolean playEntrance;
 
     /**
      * Opens the detail screen. sharedPhoto is no longer used (the screen wipes in
@@ -108,15 +102,6 @@ public class ModelDetailActivity extends AppCompatActivity {
         InsetsHelper.liftAboveNavigationBar(editButton);
         InsetsHelper.padForNavigationBar(findViewById(R.id.scroll));
 
-        // First open (not a rotation): the details rise in one after another and
-        // Edit pops in, as soon as the kit has loaded (see playEntrance).
-        details = (ViewGroup) ((ViewGroup) findViewById(R.id.scroll)).getChildAt(0);
-        editFab = editButton;
-        playEntrance = savedInstanceState == null;
-        if (playEntrance) {
-            Motion.prepareStagger(details);
-            Motion.preparePop(editFab);
-        }
 
         pager = findViewById(R.id.pager_photos);
         photoOverlay = findViewById(R.id.photo_overlay);
@@ -179,8 +164,6 @@ public class ModelDetailActivity extends AppCompatActivity {
             // Only wishlist kits can be "bought"; the button disappears once they are.
             moveButton.setVisibility(model.wishlist ? View.VISIBLE : View.GONE);
             moveButton.setOnClickListener(v -> moveToStash(model));
-
-            playEntrance(); // after the texts and chips are set, so they rise in filled
         });
 
         // All photos, in order. Refreshes by itself after you add, label or reorder them.
@@ -252,7 +235,7 @@ public class ModelDetailActivity extends AppCompatActivity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    // ---- Header photo and entrance ----
+    // ---- Header photo ----
 
     /** The cover, under the carousel: shows while the first page loads, and the placeholder when there are no photos. */
     private void loadHeaderPhoto(ImageView target, ModelKit model) {
@@ -263,15 +246,6 @@ public class ModelDetailActivity extends AppCompatActivity {
                 .fallback(R.drawable.ic_image)
                 .error(R.drawable.ic_image)
                 .into(target);
-    }
-
-    /** The details rise in one after another and Edit pops in, once, on the first open. */
-    private void playEntrance() {
-        if (playEntrance) {
-            playEntrance = false;
-            Motion.staggerIn(details, 120);
-            Motion.popIn(editFab, 300);
-        }
     }
 
     // ---- Status, menu, delete, links ----
