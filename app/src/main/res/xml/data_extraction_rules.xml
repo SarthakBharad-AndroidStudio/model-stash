@@ -3,7 +3,7 @@
     Android 12+: what Google's automatic backup and "copy apps and data" to a new
     phone take. The cloud backup is capped at 25 MB, so it gets the kit list and
     settings only; a direct phone-to-phone transfer has no such cap and takes the
-    photos too. For a complete backup you control, use Backup & data in the app.
+    photos too. In the app, Import & export saves the list as a CSV you keep yourself.
 -->
 <data-extraction-rules>
     <cloud-backup>

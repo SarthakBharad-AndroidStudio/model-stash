@@ -2,7 +2,6 @@ package com.sarthak.modelstash;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -38,9 +37,6 @@ import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.sarthak.modelstash.data.AppDatabase;
-import com.sarthak.modelstash.data.ModelKit;
-import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.ui.AddEditModelActivity;
 import com.sarthak.modelstash.ui.CatalogueFragment;
 import com.sarthak.modelstash.ui.DashboardFragment;
@@ -48,20 +44,13 @@ import com.sarthak.modelstash.ui.DataTaskViewModel;
 import com.sarthak.modelstash.ui.MainViewModel;
 import com.sarthak.modelstash.ui.UndoDeleteSnackbar;
 import com.sarthak.modelstash.ui.WishlistFragment;
-import com.sarthak.modelstash.util.CsvImport;
 import com.sarthak.modelstash.util.Haptics;
 import com.sarthak.modelstash.util.InsetsHelper;
 import com.sarthak.modelstash.util.ThemePrefs;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -115,25 +104,12 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String[]> pickCsv =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
                 if (uri != null) {
-                    importCsv(uri);
+                    // Rows without a "list" column go to the Wishlist if you're on that tab.
+                    dataTasks.importCsv(uri, onWishlistTab);
                 }
             });
 
-    // ---- Backup & data: the system "save as" / "open" screens ----
-
-    private final ActivityResultLauncher<String> createBackup =
-            registerForActivityResult(new ActivityResultContracts.CreateDocument("application/zip"), uri -> {
-                if (uri != null) {
-                    dataTasks.backup(uri);
-                }
-            });
-
-    private final ActivityResultLauncher<String[]> openBackup =
-            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
-                if (uri != null) {
-                    dataTasks.inspect(uri);
-                }
-            });
+    // ---- Import & export: the system "save as" screen for the CSV ----
 
     private final ActivityResultLauncher<String> createCsv =
             registerForActivityResult(new ActivityResultContracts.CreateDocument("text/csv"), uri -> {
@@ -492,60 +468,45 @@ public class MainActivity extends AppCompatActivity {
         return selectionActions != null;
     }
 
-    // ---- Backup & data ----
+    // ---- Import & export ----
 
+    /**
+     * Export / import the whole list as a CSV (your backup of the list; photos aren't
+     * in it). The export line says when you last exported.
+     */
     private void showDataMenu() {
         if (dataTasks.isBusy()) {
             return;
         }
-        long last = dataTasks.lastBackupAt();
-        String backup = last == 0
-                ? getString(R.string.data_backup_never)
-                : getString(R.string.data_backup_last, DateUtils.getRelativeTimeSpanString(
+        long last = dataTasks.lastExportAt();
+        String export = last == 0
+                ? getString(R.string.data_export_never)
+                : getString(R.string.data_export_last, DateUtils.getRelativeTimeSpanString(
                 last, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS));
         CharSequence[] items = {
-                backup,
-                getString(R.string.data_restore),
-                getString(R.string.data_export_csv),
-                getString(R.string.data_import_csv),
-                getString(R.string.data_shrink)};
+                export,
+                getString(R.string.data_import_csv)};
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.data_title)
                 .setItems(items, (dialog, which) -> {
-                    String today = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date());
                     try {
                         if (which == 0) {
-                            createBackup.launch("model-stash-backup-" + today + ".zip");
-                        } else if (which == 1) {
-                            openBackup.launch(new String[]{"application/zip", "application/x-zip-compressed",
-                                    "application/octet-stream"});
-                        } else if (which == 2) {
+                            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date());
                             createCsv.launch("model-stash-" + today + ".csv");
-                        } else if (which == 3) {
+                        } else {
                             // Some file managers label CSVs as plain text, so accept both.
                             pickCsv.launch(new String[]{"text/csv", "text/comma-separated-values",
                                     "text/plain", "*/*"});
-                        } else {
-                            confirmShrink();
                         }
                     } catch (ActivityNotFoundException e) {
-                        showImportMessage(getString(R.string.error_no_files_app));
+                        showMessage(getString(R.string.error_no_files_app));
                     }
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private void confirmShrink() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.shrink_title)
-                .setMessage(R.string.shrink_message)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.shrink_go, (d, w) -> dataTasks.shrinkPhotos())
-                .show();
-    }
-
-    /** "Backing up… 12 of 120" while a job runs; can't be dismissed so a job can't be started twice. */
+    /** "Exporting…" / "Importing…" while a job runs; can't be dismissed, so a job can't start twice. */
     private void showProgress(@Nullable DataTaskViewModel.Progress progress) {
         if (progress == null) {
             if (progressDialog != null) {
@@ -567,63 +528,14 @@ public class MainActivity extends AppCompatActivity {
         if (progressText != null) {
             progressText.setText(progress.total > 0
                     ? getString(R.string.task_progress, progress.done, progress.total)
-                    : progress.done > 0 ? getString(R.string.task_progress_count, progress.done) : "");
+                    : "");
         }
     }
 
     private void onDataEvent(@Nullable DataTaskViewModel.Event event) {
-        if (event == null || !event.take()) {
-            return;
+        if (event != null && event.take()) {
+            showMessage(event.message);
         }
-        if (event.kind == DataTaskViewModel.Event.CONFIRM_RESTORE && event.summary != null && event.uri != null) {
-            Uri uri = event.uri;
-            String date = event.summary.createdAt > 0
-                    ? DateFormat.getDateInstance(DateFormat.MEDIUM).format(new Date(event.summary.createdAt))
-                    : getString(R.string.restore_unknown_date);
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.restore_title)
-                    .setMessage(getResources().getQuantityString(R.plurals.restore_message,
-                            event.summary.kits, date, event.summary.kits, event.summary.photos))
-                    .setNegativeButton(R.string.cancel, null)
-                    .setPositiveButton(R.string.restore_go, (d, w) -> dataTasks.restore(uri))
-                    .show();
-            return;
-        }
-        showImportMessage(event.message);
-    }
-
-    // ---- CSV import ----
-
-    /** Reads the chosen CSV in the background and adds every row it understands. */
-    private void importCsv(Uri uri) {
-        AppDatabase.IO.execute(() -> {
-            String csv;
-            try (InputStream in = getContentResolver().openInputStream(uri)) {
-                if (in == null) {
-                    throw new IOException("Could not open the file");
-                }
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, read);
-                }
-                csv = out.toString(StandardCharsets.UTF_8.name());
-            } catch (IOException e) {
-                runOnUiThread(() -> showImportMessage(getString(R.string.import_failed)));
-                return;
-            }
-            // Importing on the Wishlist tab fills the wishlist; anywhere else, the catalogue.
-            List<ModelKit> models = CsvImport.parse(csv, onWishlistTab);
-            runOnUiThread(() -> {
-                if (models.isEmpty()) {
-                    showImportMessage(getString(R.string.import_empty));
-                    return;
-                }
-                ModelRepository.get(this).importAll(models, added -> showImportMessage(
-                        getResources().getQuantityString(R.plurals.import_done, added, added)));
-            });
-        });
     }
 
     /** A short message at the bottom of the home screen (above the + button). */
@@ -633,10 +545,6 @@ public class MainActivity extends AppCompatActivity {
             bar.setAnchorView(fab);
         }
         bar.show();
-    }
-
-    private void showImportMessage(String message) {
-        Snackbar.make(findViewById(R.id.main), message, Snackbar.LENGTH_LONG).show();
     }
 
     // ---- Appearance ----

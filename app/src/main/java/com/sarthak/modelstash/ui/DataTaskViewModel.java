@@ -4,37 +4,50 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.text.format.Formatter;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.sarthak.modelstash.R;
-import com.sarthak.modelstash.backup.BackupManager;
-import com.sarthak.modelstash.data.ModelRepository;
+import com.sarthak.modelstash.data.AppDatabase;
+import com.sarthak.modelstash.data.ModelDao;
+import com.sarthak.modelstash.data.ModelKit;
+import com.sarthak.modelstash.util.BuildStatus;
+import com.sarthak.modelstash.util.CsvExport;
+import com.sarthak.modelstash.util.CsvImport;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Runs the "Backup & data" jobs (back up, restore, export CSV, shrink photos) in
- * the background, one at a time, and tells the home screen how far along it is.
+ * Runs the "Import & export" jobs in the background, one at a time:
+ * - export: every kit (stash and wishlist, every field) to a CSV file you choose;
+ * - import: a CSV back in, skipping kits you already have.
  *
- * A ViewModel, so a job keeps going and its result still arrives when the screen
- * rotates or is rebuilt in the middle of it.
+ * Export + import together are the app's backup of your list (photos aren't in
+ * a CSV). A ViewModel, so a job keeps going, and its result still arrives, when
+ * the screen rotates in the middle of it.
  */
 public class DataTaskViewModel extends AndroidViewModel {
 
     private static final String TAG = "DataTask";
     private static final String PREFS = "data";
-    private static final String KEY_LAST_BACKUP = "last_backup";
+    private static final String KEY_LAST_EXPORT = "last_export";
+    /** A CSV of tens of thousands of kits; anything bigger isn't one of ours. */
+    private static final int MAX_CSV_BYTES = 20 * 1024 * 1024;
 
-    /** What is running right now: null title = nothing. */
+    /** What is running right now (null = nothing). */
     public static final class Progress {
         @StringRes
         public final int title;
@@ -48,28 +61,15 @@ public class DataTaskViewModel extends AndroidViewModel {
         }
     }
 
-    /** Something to tell you once a job is over (or a question to ask). Handled once. */
+    /** A message to show once a job is over. Shown once, not again after a rotation. */
     public static final class Event {
-        public static final int MESSAGE = 0;
-        /** A backup was opened: ask before replacing everything. */
-        public static final int CONFIRM_RESTORE = 1;
-
-        public final int kind;
         public final String message;
-        @Nullable
-        public final Uri uri;
-        @Nullable
-        public final BackupManager.Summary summary;
         private boolean handled;
 
-        Event(int kind, String message, @Nullable Uri uri, @Nullable BackupManager.Summary summary) {
-            this.kind = kind;
+        Event(String message) {
             this.message = message;
-            this.uri = uri;
-            this.summary = summary;
         }
 
-        /** true the first time only, so a rotation doesn't show the same message again. */
         public boolean take() {
             if (handled) {
                 return false;
@@ -99,62 +99,82 @@ public class DataTaskViewModel extends AndroidViewModel {
         return progress.getValue() != null;
     }
 
-    /** When the last backup was made on this phone, 0 = never. */
-    public long lastBackupAt() {
-        return prefs().getLong(KEY_LAST_BACKUP, 0);
+    /** When the list was last exported on this phone, 0 = never. */
+    public long lastExportAt() {
+        return prefs().getLong(KEY_LAST_EXPORT, 0);
     }
 
     // ---- Jobs ----
 
-    public void backup(Uri target) {
-        run(R.string.task_backing_up, () -> {
-            BackupManager.Summary s = BackupManager.exportBackup(getApplication(), target, this::report);
-            prefs().edit().putLong(KEY_LAST_BACKUP, System.currentTimeMillis()).apply();
-            return text(R.plurals.backup_done, s.kits, s.kits, s.photos);
-        });
-    }
-
-    /** Step 1 of restoring: read what's in the file, then ask (Event.CONFIRM_RESTORE). */
-    public void inspect(Uri source) {
-        run(R.string.task_reading_backup, () -> {
-            BackupManager.Summary s = BackupManager.inspect(getApplication(), source);
-            events.postValue(new Event(Event.CONFIRM_RESTORE, "", source, s));
-            return null;
-        });
-    }
-
-    /** Step 2: replace everything. Call on the main thread. */
-    public void restore(Uri source) {
-        // A delete still waiting for its UNDO would put back kits whose ids the backup may use.
-        ModelRepository.get(getApplication()).finalizePendingDelete();
-        run(R.string.task_restoring, () -> {
-            BackupManager.Summary s = BackupManager.restoreBackup(getApplication(), source, this::report);
-            return text(R.plurals.restore_done, s.kits, s.kits, s.photos);
-        });
-    }
-
+    /** Writes every kit to the CSV file at `target` (from the system "save as" screen). */
     public void exportCsv(Uri target) {
         run(R.string.task_exporting, () -> {
-            int n = BackupManager.exportCsv(getApplication(), target);
-            return text(R.plurals.export_done, n, n);
+            Context app = getApplication();
+            List<ModelKit> kits = AppDatabase.get(app).modelDao().getAllNow();
+            Collections.sort(kits, (a, b) -> { // stash first, then wishlist, A–Z
+                if (a.wishlist != b.wishlist) {
+                    return a.wishlist ? 1 : -1;
+                }
+                return a.name.compareToIgnoreCase(b.name);
+            });
+            String csv = CsvExport.write(kits, BuildStatus.labels(app),
+                    app.getString(R.string.csv_list_stash), app.getString(R.string.csv_list_wishlist));
+            try (OutputStream out = app.getContentResolver().openOutputStream(target)) {
+                if (out == null) {
+                    return app.getString(R.string.export_failed);
+                }
+                out.write(csv.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException | RuntimeException e) {
+                Log.w(TAG, "Export failed", e);
+                return app.getString(R.string.export_failed);
+            }
+            prefs().edit().putLong(KEY_LAST_EXPORT, System.currentTimeMillis()).apply();
+            return app.getResources().getQuantityString(R.plurals.export_done, kits.size(), kits.size());
         });
     }
 
-    public void shrinkPhotos() {
-        run(R.string.task_shrinking, () -> {
-            long saved = BackupManager.shrinkAllPhotos(getApplication(), this::report);
-            return saved > 0
-                    ? getApplication().getString(R.string.shrink_done,
-                    Formatter.formatShortFileSize(getApplication(), saved))
-                    : getApplication().getString(R.string.shrink_nothing);
+    /**
+     * Reads a CSV and adds its kits. Rows that say which list they belong to
+     * (a "list" column, as in an export) go there; the others go to the Wishlist
+     * if you imported from the Wishlist tab, otherwise to your stash. Kits you
+     * already have are skipped, so importing the same file twice adds nothing.
+     */
+    public void importCsv(Uri source, boolean toWishlist) {
+        run(R.string.task_importing, () -> {
+            Context app = getApplication();
+            String csv;
+            try {
+                csv = readText(app, source);
+            } catch (IOException | RuntimeException e) {
+                Log.w(TAG, "Import failed", e);
+                return app.getString(R.string.import_failed);
+            }
+            List<ModelKit> parsed = CsvImport.parse(csv, toWishlist, BuildStatus.labels(app));
+            if (parsed.isEmpty()) {
+                return app.getString(R.string.import_empty);
+            }
+            ModelDao dao = AppDatabase.get(app).modelDao();
+            List<ModelKit> fresh = CsvImport.withoutDuplicates(parsed, dao.getAllNow());
+            int skipped = parsed.size() - fresh.size();
+            if (!fresh.isEmpty()) {
+                long now = System.currentTimeMillis();
+                for (int i = 0; i < fresh.size(); i++) {
+                    if (fresh.get(i).createdAt <= 0) {
+                        fresh.get(i).createdAt = now - (fresh.size() - 1 - i) * 1000L; // file order
+                    }
+                }
+                dao.insertAll(fresh); // the lists on screen update themselves
+            }
+            String added = app.getResources().getQuantityString(R.plurals.import_done, fresh.size(), fresh.size());
+            return skipped == 0 ? added : added + " · "
+                    + app.getResources().getQuantityString(R.plurals.import_skipped, skipped, skipped);
         });
     }
 
     // ---- Plumbing ----
 
     private interface Job {
-        /** @return the message to show when done, or null for none */
-        @Nullable
+        /** @return the message to show when done */
         String run() throws Exception;
     }
 
@@ -167,29 +187,35 @@ public class DataTaskViewModel extends AndroidViewModel {
             String message;
             try {
                 message = job.run();
-            } catch (BackupManager.BackupException e) {
-                Log.w(TAG, "Job failed", e);
-                message = getApplication().getString(e.message);
             } catch (Exception | OutOfMemoryError e) {
                 Log.w(TAG, "Job failed", e);
                 message = getApplication().getString(R.string.task_failed);
             }
             if (message != null) {
-                events.postValue(new Event(Event.MESSAGE, message, null, null));
+                events.postValue(new Event(message));
             }
             progress.postValue(null);
         });
     }
 
-    /** Called from the worker thread while a job runs. */
-    private void report(int done, int total) {
-        Progress now = progress.getValue();
-        int title = now != null ? now.title : R.string.task_working;
-        progress.postValue(new Progress(title, done, total));
-    }
-
-    private String text(int plurals, int count, Object... args) {
-        return getApplication().getResources().getQuantityString(plurals, count, args);
+    private static String readText(Context context, Uri uri) throws IOException {
+        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                throw new IOException("Could not open the file");
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[16 * 1024];
+            int read;
+            int total = 0;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > MAX_CSV_BYTES) {
+                    throw new IOException("File too big for a kit list");
+                }
+                out.write(buffer, 0, read);
+            }
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        }
     }
 
     private SharedPreferences prefs() {

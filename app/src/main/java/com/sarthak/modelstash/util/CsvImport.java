@@ -2,17 +2,25 @@ package com.sarthak.modelstash.util;
 
 import com.sarthak.modelstash.data.ModelKit;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Reads a CSV file into models. Only four columns are used: name, number,
- * brand and scale. Anything else in the file is ignored, so a spreadsheet
- * with prices or notes can be imported as it is.
+ * Reads a CSV file into models.
  *
- * A header row decides which column is which; without one, the order
- * name, number, brand, scale is assumed. Only the name is required.
+ * Columns it understands (by header name; common spellings work too):
+ *   name (required), number, brand, scale,
+ *   status (Unbuilt / On the bench / Completed), list (Stash / Wishlist),
+ *   description (or notes), link (Scalemates URL), added (yyyy-MM-dd).
+ * These are exactly the columns CsvExport writes, so an exported file is a
+ * complete copy of your list (everything except the photos) and imports back
+ * as it was. Any other column (price...) is ignored, so a spreadsheet you
+ * already keep can be imported as it is.
+ *
+ * Without a header row, the order name, number, brand, scale is assumed.
  *
  * Plain Java (no Android classes), so it can be unit-tested on your PC.
  */
@@ -24,10 +32,18 @@ public final class CsvImport {
     }
 
     /**
-     * @param wishlist true puts every imported row on the wishlist, false in the owned catalogue
+     * @param wishlist the list for rows that don't say (no "list" column): true = wishlist
      * @return one ModelKit per usable row; rows without a name are skipped
      */
     public static List<ModelKit> parse(String csv, boolean wishlist) {
+        return parse(csv, wishlist, new String[0]);
+    }
+
+    /**
+     * Same, also understanding the app's own (possibly translated) status names,
+     * e.g. BuildStatus.labels(context), as written by CsvExport.
+     */
+    public static List<ModelKit> parse(String csv, boolean wishlist, String[] statusLabels) {
         List<ModelKit> models = new ArrayList<>();
         if (csv == null || csv.trim().isEmpty()) {
             return models;
@@ -72,11 +88,32 @@ public final class CsvImport {
                     case "scale":
                         model.scale = ScaleFormat.normalize(value); // null when it isn't a scale
                         break;
+                    case "status":
+                        model.buildStatus = statusOf(value, statusLabels);
+                        break;
+                    case "list":
+                        Boolean onWishlist = listOf(value);
+                        if (onWishlist != null) {
+                            model.wishlist = onWishlist;
+                        }
+                        break;
+                    case "description":
+                        model.description = value;
+                        break;
+                    case "link":
+                        model.sourceUrl = value;
+                        break;
+                    case "added":
+                        model.createdAt = dateOf(value);
+                        break;
                     default:
-                        break; // price, notes, anything else: ignored on purpose
+                        break; // price and anything else: ignored on purpose
                 }
             }
             if (hasName) {
+                if (model.wishlist) {
+                    model.buildStatus = 0; // a kit you don't own yet has no build stage
+                }
                 models.add(model);
             }
         }
@@ -112,9 +149,101 @@ public final class CsvImport {
             case "ratio":
             case "size":
                 return "scale";
+            case "status":
+            case "build status":
+            case "stage":
+            case "build stage":
+                return "status";
+            case "list":
+            case "owned":
+            case "collection":
+                return "list";
+            case "description":
+            case "notes":
+            case "note":
+            case "comment":
+            case "comments":
+                return "description";
+            case "link":
+            case "url":
+            case "scalemates":
+            case "source":
+                return "link";
+            case "added":
+            case "date added":
+            case "created":
+                return "added";
             default:
                 return h; // unknown column, ignored below
         }
+    }
+
+    /** "On the bench" / "in build" / "1" -> 1 and so on; anything unknown is Unbuilt (0). */
+    static int statusOf(String value, String[] labels) {
+        String v = value.trim().toLowerCase(Locale.ROOT);
+        for (int i = 0; i < labels.length; i++) {
+            if (labels[i] != null && labels[i].trim().toLowerCase(Locale.ROOT).equals(v)) {
+                return Math.min(i, 2);
+            }
+        }
+        switch (v) {
+            case "1":
+            case "on the bench":
+            case "in build":
+            case "in progress":
+            case "started":
+            case "building":
+                return 1;
+            case "2":
+            case "completed":
+            case "complete":
+            case "built":
+            case "finished":
+            case "done":
+                return 2;
+            default:
+                return 0;
+        }
+    }
+
+    /** "Wishlist" -> true, "Stash" -> false, anything else -> null (use the default). */
+    static Boolean listOf(String value) {
+        String v = value.trim().toLowerCase(Locale.ROOT);
+        if (v.startsWith("wish") || v.equals("wanted") || v.equals("want")) {
+            return true;
+        }
+        if (v.equals("stash") || v.equals("owned") || v.equals("own") || v.equals("catalogue")
+                || v.equals("collection") || v.equals("yes")) {
+            return false;
+        }
+        return null;
+    }
+
+    /** "2026-11-18" -> that day (midnight, phone's time zone, like the export); 0 when it isn't a date. */
+    static long dateOf(String value) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+        format.setLenient(false);
+        try {
+            return format.parse(value.trim()).getTime();
+        } catch (ParseException | RuntimeException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Drops rows that are kits you already have (DuplicateFinder's rules), and rows
+     * repeated within the file, so importing the same file twice adds nothing new.
+     */
+    public static List<ModelKit> withoutDuplicates(List<ModelKit> imported, List<ModelKit> existing) {
+        List<ModelKit> seen = new ArrayList<>(existing);
+        List<ModelKit> kept = new ArrayList<>();
+        for (ModelKit k : imported) {
+            if (DuplicateFinder.find(k, seen).isEmpty()) {
+                kept.add(k);
+                seen.add(k);
+            }
+        }
+        return kept;
     }
 
     private static boolean looksLikeHeader(List<String> row) {

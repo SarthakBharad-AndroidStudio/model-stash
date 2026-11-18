@@ -7,9 +7,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.sarthak.modelstash.backup.BackupFormat;
 import com.sarthak.modelstash.data.ModelKit;
-import com.sarthak.modelstash.data.ModelPhoto;
 import com.sarthak.modelstash.util.CsvExport;
 import com.sarthak.modelstash.util.CsvImport;
 import com.sarthak.modelstash.util.CsvTable;
@@ -23,11 +21,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
- * Backup format, CSV export, duplicate check, unsaved-changes check and photo
- * sizing: the logic behind version 1.6, without a phone. Right-click > Run.
+ * CSV export and import (the list's backup), duplicate check, unsaved-changes
+ * check and photo sizing: the logic behind version 1.6, without a phone.
+ * Right-click > Run.
  */
 public class QualityOfLifeTest {
 
@@ -84,91 +82,73 @@ public class QualityOfLifeTest {
         assertEquals("Eurofighter; Typhoon", back.get(1).name);
     }
 
-    // ---------------- Backup format ----------------
+    // ---------------- CSV as the list's backup ----------------
 
     @Test
-    public void backup_kitsAndPhotosRoundTrip() {
-        ModelKit a = kit(7, "Bloch MB.152C.1", "Special Hobby", "1:32", "SH32041");
-        a.description = "Box opened,\n\"decals\" yellowed";
+    public void export_thenImport_bringsEveryFieldBack() {
+        ModelKit a = kit(1, "Bloch MB.152C.1 \"Early Version\"", "Special Hobby", "1:32", "SH32041");
+        a.description = "Resin wheels,\nmasks; decals yellowed";
         a.sourceUrl = "https://www.scalemates.com/kits/x";
         a.buildStatus = 1;
-        a.createdAt = 123456789L;
-        ModelKit b = kit(9, "Wish", null, null, null);
+        a.createdAt = CsvImportDates.day(2026, 11, 2);
+        ModelKit b = kit(2, "Spitfire Mk.IX", "Eduard", "1:48", "82153");
         b.wishlist = true;
+        String[] labels = {"Unbuilt", "On the bench", "Completed"};
+        String csv = CsvExport.write(Arrays.asList(a, b), labels, "Stash", "Wishlist");
 
-        List<ModelKit> kits = BackupFormat.readKits(BackupFormat.kitsCsv(Arrays.asList(a, b)));
-        assertEquals(2, kits.size());
-        ModelKit ra = kits.get(0);
-        assertEquals(7, ra.id);
-        assertEquals("Bloch MB.152C.1", ra.name);
+        // Imported from the Catalogue tab: the "list" column still puts b on the wishlist.
+        List<ModelKit> back = CsvImport.parse(csv, false, labels);
+        assertEquals(2, back.size());
+        ModelKit ra = back.get(0);
+        assertEquals("Bloch MB.152C.1 \"Early Version\"", ra.name);
         assertEquals("Special Hobby", ra.brand);
         assertEquals("1:32", ra.scale);
         assertEquals("SH32041", ra.kitNumber);
-        assertEquals("Box opened,\n\"decals\" yellowed", ra.description);
+        assertEquals("Resin wheels,\nmasks; decals yellowed", ra.description);
         assertEquals("https://www.scalemates.com/kits/x", ra.sourceUrl);
         assertEquals(1, ra.buildStatus);
-        assertEquals(123456789L, ra.createdAt);
         assertFalse(ra.wishlist);
-        assertTrue(kits.get(1).wishlist);
-        assertNull(kits.get(1).brand);
-
-        ModelPhoto p = new ModelPhoto();
-        p.modelId = 7;
-        p.path = "/data/user/0/com.sarthak.modelstash/files/photos/IMG_abc.jpg";
-        p.label = 0;
-        p.position = 0;
-        List<BackupFormat.PhotoEntry> photos =
-                BackupFormat.readPhotos(BackupFormat.photosCsv(Collections.singletonList(p)));
-        assertEquals(1, photos.size());
-        assertEquals(7, photos.get(0).kitId);
-        assertEquals("IMG_abc.jpg", photos.get(0).file);
-        assertEquals(0, photos.get(0).label);
+        assertEquals("added date kept", a.createdAt, ra.createdAt);
+        assertTrue(back.get(1).wishlist);
+        assertEquals(0, back.get(1).buildStatus);
     }
 
     @Test
-    public void backup_laterVersionWithExtraColumnsStillRestores() {
-        // What a backup from a future version with price and shop columns would look like.
-        String csv = "id,name,scale,price,shop,wishlist\r\n3,Spitfire Mk.IX,1:48,24.99,Modellbau Kassel,0\r\n";
-        List<ModelKit> kits = BackupFormat.readKits(csv);
-        assertEquals(1, kits.size());
-        assertEquals("Spitfire Mk.IX", kits.get(0).name);
-        assertEquals("1:48", kits.get(0).scale);
-        assertEquals(0, kits.get(0).buildStatus); // missing column: default
+    public void import_understandsCommonSpellings() {
+        String csv = "Kit,Manufacturer,Ratio,Stage,Notes,URL,Date added,Price\r\n"
+                + "Tiger I,Tamiya,1/35,built,Zimmerit done,https://x,2025-03-01,39.99\r\n"
+                + "Panther,Takom,1/35,in progress,,,,\r\n";
+        List<ModelKit> kits = CsvImport.parse(csv, false);
+        assertEquals(2, kits.size());
+        assertEquals("Tamiya", kits.get(0).brand);
+        assertEquals("1:35", kits.get(0).scale);
+        assertEquals(2, kits.get(0).buildStatus);
+        assertEquals("Zimmerit done", kits.get(0).description);
+        assertEquals("https://x", kits.get(0).sourceUrl);
+        assertTrue(kits.get(0).createdAt > 0);
+        assertEquals(1, kits.get(1).buildStatus);
+        assertEquals("no date: the app fills it in", 0, kits.get(1).createdAt);
     }
 
     @Test
-    public void backup_rejectsFileNamesThatEscapeThePhotoFolder() {
-        String csv = "kit_id,file,label,position\r\n1,../../databases/model_stash.db,0,0\r\n"
-                + "1,photos/x.jpg,0,1\r\n1,ok.jpg,0,2\r\n";
-        List<BackupFormat.PhotoEntry> photos = BackupFormat.readPhotos(csv);
-        assertEquals(1, photos.size());
-        assertEquals("ok.jpg", photos.get(0).file);
+    public void import_oldFourColumnFilesStillWork() {
+        List<ModelKit> kits = CsvImport.parse("Tiger I,250,Tamiya,1:35\r\nPanther,,Takom,35\r\n", true);
+        assertEquals(2, kits.size());
+        assertTrue("no list column: the tab decides", kits.get(0).wishlist);
+        assertEquals("250", kits.get(0).kitNumber);
+        assertEquals("1:35", kits.get(1).scale);
     }
 
     @Test
-    public void backup_validation() {
-        List<ModelKit> kits = Arrays.asList(kit(1, "A", null, null, null), kit(2, "B", null, null, null));
-        assertFalse(BackupFormat.hasDuplicateIds(kits));
-        assertTrue(BackupFormat.hasDuplicateIds(Arrays.asList(kit(1, "A", null, null, null),
-                kit(1, "B", null, null, null))));
-
-        StringBuilder csv = new StringBuilder("kit_id,file,label,position\r\n");
-        for (int i = 0; i < 8; i++) {
-            csv.append("1,p").append(i).append(".jpg,-1,").append(i).append("\r\n");
-        }
-        csv.append("99,orphan.jpg,-1,0\r\n");
-        List<BackupFormat.PhotoEntry> valid =
-                BackupFormat.validPhotos(kits, BackupFormat.readPhotos(csv.toString()), 6);
-        assertEquals("six per kit at most, none for unknown kits", 6, valid.size());
-    }
-
-    @Test
-    public void backup_manifest() {
-        Properties p = BackupFormat.manifest("1.6", 1L, 46, 120);
-        assertEquals(BackupFormat.FORMAT, BackupFormat.formatOf(p));
-        Properties other = new Properties();
-        other.setProperty("format", "1");
-        assertEquals("not our backup", -1, BackupFormat.formatOf(other));
+    public void import_skipsKitsYouAlreadyHave() {
+        List<ModelKit> existing = Arrays.asList(kit(1, "Grumman F-14D Tomcat", "Tamiya", "1:48", "61114"));
+        List<ModelKit> imported = Arrays.asList(
+                kit(0, "Grumman F-14D Tomcat", "Tamiya", "1:48", "61114"),  // already have
+                kit(0, "Spitfire Mk.IX", "Eduard", "1:48", "82153"),        // new
+                kit(0, "Spitfire Mk IX", "Eduard", "1:48", null));          // repeated in the file
+        List<ModelKit> kept = CsvImport.withoutDuplicates(imported, existing);
+        assertEquals(1, kept.size());
+        assertEquals("Spitfire Mk.IX", kept.get(0).name);
     }
 
     // ---------------- Duplicates ----------------
@@ -240,5 +220,15 @@ public class QualityOfLifeTest {
         assertArrayEquals(new int[]{2560, 1920}, ImageSizing.targetSize(4000, 3000, 2560));
         assertArrayEquals(new int[]{1440, 2560}, ImageSizing.targetSize(2250, 4000, 2560)); // portrait
         assertArrayEquals(new int[]{800, 600}, ImageSizing.targetSize(800, 600, 2560));     // never enlarged
+    }
+
+    /** Midnight of a day in the phone's time zone, as the export writes and the import reads it. */
+    private static final class CsvImportDates {
+        static long day(int year, int month, int dayOfMonth) {
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            c.clear();
+            c.set(year, month - 1, dayOfMonth);
+            return c.getTimeInMillis();
+        }
     }
 }

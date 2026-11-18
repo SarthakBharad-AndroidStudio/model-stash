@@ -10,7 +10,7 @@
 <img src="https://img.shields.io/badge/Material%203-0D1C42?style=for-the-badge&logo=materialdesign&logoColor=white" alt="Material 3">
 <img src="https://img.shields.io/badge/License-MIT-FCF1D0?style=for-the-badge&labelColor=010736" alt="License: MIT">
 
-[Download](#-download) · [What's new](#-whats-new-in-16) · [Features](#-features) · [Screenshots](#-screenshots) · [Backups](#-backup--restore) · [Getting started](#-getting-started)
+[Download](#-download) · [What's new](#-whats-new-in-16) · [Features](#-features) · [Screenshots](#-screenshots) · [Import & export](#-import--export) · [Getting started](#-getting-started)
 
 </div>
 
@@ -19,7 +19,7 @@
 Before you buy a kit, Model Stash answers one question in a second: ***do I already have it?*** It also keeps track of what you've built, what's on the bench and what's still sealed in its box, with up to six photos of every kit.
 
 > [!NOTE]
-> 🔒 **Everything stays on your phone.** There's no account, no server, no ads and no analytics. The app only goes online when you import a Scalemates link, and your backups go only where you choose to save them.
+> 🔒 **Everything stays on your phone.** There's no account, no server, no ads and no analytics. The app only goes online when you import a Scalemates link, and exported files go only where you choose to save them.
 
 ---
 
@@ -27,9 +27,8 @@ Before you buy a kit, Model Stash answers one question in a second: ***do I alre
 
 | | |
 | --- | --- |
-| 💾 **Backup & restore** | One `.zip` with every kit and photo, saved wherever you like (Drive, Downloads, a PC). Restore it on the same or a new phone. |
-| 📊 **Spreadsheet export** | Your whole stash and wishlist as a CSV that opens in Excel, LibreOffice or Google Sheets. |
-| 🗜️ **Smaller photos** | Photos are shrunk to at most 2560 px as they're added (about 0.5 MB instead of 4–8 MB), and turned the right way up. *Shrink stored photos* does the same for the ones you already have. |
+| 📄 **Export & import your list** | Save your whole stash and wishlist, with every field, as a spreadsheet (CSV) that opens in Excel, LibreOffice or Google Sheets. Import it back on the same or a new phone; kits you already have are skipped, so importing twice is safe. |
+| 🗜️ **Smaller photos** | New photos are saved at up to 2560 px as they're added (about 0.5 MB instead of 4–8 MB), and turned the right way up. |
 | ⚠️ **"You may already have this kit"** | Saving a kit that matches one in your stash or wishlist (same brand and kit number, or same name at the same scale) asks before adding a duplicate. |
 | ✋ **Discard changes?** | Leaving the add/edit screen with unsaved changes asks first. Leaving without changes closes straight away. |
 | 🔍 **Full-screen photo viewer** | Tap a photo on a kit's page: full screen on black, pinch or double-tap to zoom in on box details, swipe between photos. |
@@ -70,7 +69,7 @@ Model Stash isn't on the Play Store. Each version is published as a signed APK o
 Download the newer APK from the Releases page and install it over the existing app. Your kits and photos are kept.
 
 > [!WARNING]
-> **Don't uninstall first.** Uninstalling deletes the app's database and photos. Since 1.6 you can make a backup first (**Backup & data → Back up now**) to be safe.
+> **Don't uninstall first.** Uninstalling deletes the app's database and photos. To be safe, export your list first (**Import & export → Export to spreadsheet**).
 
 ---
 
@@ -92,7 +91,7 @@ Download the newer APK from the Releases page and install it over the existing a
 - **Arrange them:** hold and drag to reorder, or tap **Make cover**. The first photo is the cover every card shows.
 - **Swipeable carousel** on the kit's page, with a badge (*Box Art · 2 of 4*) and page dots.
 - **Full-screen viewer:** tap a photo on the kit's page. Pinch or double-tap to zoom in (up to 5×), drag to look around, swipe between photos, tap to hide the controls.
-- **Sensible sizes:** photos are stored at most 2560 px on their long side (about 0.5 MB each) and always upright. They stay sharp on a phone screen, and a stash of 50 kits with 6 photos each takes around 150 MB instead of a few GB.
+- **Sensible sizes:** new photos are stored at most 2560 px on their long side (about 0.5 MB each) and always upright. They stay sharp on a phone screen, and a stash of 50 kits with 6 photos each takes around 150 MB instead of a few GB.
 - **Robust import:** photos that can't be read (a cloud photo not yet on the phone, a file that isn't a picture) are skipped with a message instead of crashing. *Adding 3 photos…* shows while they copy, and rotating the phone doesn't lose them.
 - Photos are copied into the app's private storage, so deleting them from your gallery doesn't affect the app.
 
@@ -113,16 +112,14 @@ Download the newer APK from the Releases page and install it over the existing a
 - **Every number leads somewhere:** tap the total for the full Catalogue, the top scale for a scale-sorted list, *Last 30 days* for newest first, or **Brands** for every brand with its kits underneath.
 - **Recently added** carousel.
 
-### 💾 Backup & data
-Tap the ☁️ icon in the toolbar to open **Backup & data**:
-- **Back up now:** every kit and photo in one `.zip`, saved wherever you choose. The menu shows when you last backed up.
-- **Restore from a backup:** shows what's in the file (date, number of kits and photos) and asks before replacing anything. [More below](#-backup--restore).
-- **Export as spreadsheet (CSV)** and **Import from spreadsheet (CSV)**.
-- **Shrink stored photos:** brings photos added before 1.6 down to the new size and reports how much space it freed.
+### 📄 Import & export (CSV)
+Tap the ⇅ icon in the toolbar to open **Import & export**:
+- **Export to spreadsheet (CSV):** every kit in your stash and wishlist, with every field, saved wherever you choose. The menu shows when you last exported. [More below](#-import--export).
+- **Import from spreadsheet (CSV):** adds the kits from a CSV, your own export or a list you keep elsewhere, and skips the ones you already have.
 
 ### 🔗 Importing
 - **Scalemates link import:** share a Scalemates kit page from your browser to Model Stash, or paste the link. The app reads that one page and fills in name, kit number, brand and scale. [Why only a link?](#-why-scalemates-is-a-link-import)
-- **CSV import** for a whole list at once. [Format below](#-csv-import--export).
+- **CSV import** for a whole list at once. [Format below](#-import--export).
 - Manual entry always works too, including for small-batch kits that aren't listed anywhere.
 
 ### 🚀 Shortcuts
@@ -139,44 +136,25 @@ Long-press the app icon (or drag a shortcut onto your home screen):
 
 ---
 
-## 💾 Backup & restore
+## 📄 Import & export
 
-A backup is an ordinary `.zip` file you keep wherever you like:
+Your list can be saved as a spreadsheet and read back in. That's the app's backup of your list: export now and then, and keep the file somewhere safe (Drive, your PC, an email to yourself).
 
-```
-model-stash-backup-2026-11-18.zip
-├── backup.properties   app version, date, number of kits and photos
-├── kits.csv            every kit and every field (opens in any spreadsheet)
-├── photos.csv          which photo belongs to which kit, its label and position
-└── photos/             the photo files
-```
-
-- **Restoring replaces everything** on the phone with the backup's kits and photos. It never merges, and the app says so and asks before it starts.
-- **It's careful:** the whole file is read and checked first, and the photos are put in place before the database is swapped in a single step. If anything is wrong (not a backup, damaged, made by a newer version), you get a message and **nothing on the phone changes**.
-- **It's future-proof:** columns are read by name, so backups from older versions restore in newer ones, and the other way round. Fields a version doesn't know about are simply skipped.
-- **Moving to a new phone:** back up on the old phone, install Model Stash on the new one, then **Restore from a backup**.
-
-> [!TIP]
-> Make a backup after a big session of adding kits. With the photos at their new size, a backup of 50 kits is around 150 MB.
-
-**Android's own backup:** Model Stash also lets Android's automatic Google backup save your kit list and settings, but not the photos: Google limits each app to 25 MB. A direct phone-to-phone transfer ("copy apps and data" when setting up a new phone) includes the photos too. For a complete backup that you control, use **Backup & data**.
-
----
-
-## 📄 CSV import & export
+> [!IMPORTANT]
+> A CSV holds your **list**, not the **photos**. When you set up a new phone, Android's "copy apps and data" transfer brings the photos along too.
 
 ### Export
-**Backup & data → Export as spreadsheet (CSV)** writes every kit, stash first and then wishlist, A–Z:
+**Import & export → Export to spreadsheet (CSV)** writes every kit, stash first and then wishlist, A–Z:
 
 ```csv
 name,number,brand,scale,status,list,description,link,added
 Grumman F-14D Tomcat,61114,Tamiya,1:48,On the bench,Stash,,https://www.scalemates.com/kits/…,2026-11-02
 ```
 
-The file is UTF-8 with a byte-order mark, so Excel shows umlauts and accents correctly. An exported file can be imported again.
+The file is UTF-8 with a byte-order mark, so Excel shows umlauts and accents correctly.
 
 ### Import
-**Backup & data → Import from spreadsheet (CSV)** reads four columns:
+**Import & export → Import from spreadsheet (CSV)** reads an exported file back with **every field**: name, kit number, brand, scale, build status, which list it's on, description, Scalemates link and the date it was added. It also reads lists you keep yourself:
 
 ```csv
 name,number,brand,scale
@@ -184,14 +162,18 @@ Russian Heavy Tank JS-2 Model 1944 ChKZ,32571,Tamiya,1:48
 ```
 
 - Only `name` is required. Rows without a name are skipped.
-- With a header row the columns can be in any order, and common spellings work: *Kit No.*, *Kit number*, *Model number*, *Manufacturer*, *Maker*, *Ratio*, *Size*.
+- **Kits you already have are skipped:** same brand and kit number, or same name at a matching scale. Importing the same file twice adds nothing, and the message says how many were skipped.
+- With a header row the columns can be in any order, and common spellings work: *Kit No.*, *Kit number*, *Manufacturer*, *Maker*, *Ratio*, *Stage*, *Notes*, *URL*, *Date added*.
 - Without a header, the order `name, number, brand, scale` is assumed.
-- Any other column (price, notes, …) is ignored, so you can use a spreadsheet you already keep.
+- Any other column (price, …) is ignored, so you can use a spreadsheet you already keep.
 - Quoted commas, semicolons (German Excel) and Windows line endings all work.
-- Importing on the **Wishlist** tab fills the wishlist; anywhere else fills your stash.
+- Rows that say which list they're on go there. Other rows go to the **Wishlist** if you import from the Wishlist tab, otherwise to your stash.
 
-> [!TIP]
-> An import only ever adds kits. It never overwrites existing ones, so it's safe to run again.
+### Moving to a new phone
+1. On the old phone: **Import & export → Export to spreadsheet** and save the file to Drive (or send it to yourself).
+2. On the new phone: install Model Stash, then **Import & export → Import from spreadsheet** and pick that file.
+
+Android's automatic Google backup also saves your kit list and settings, but not the photos (Google limits each app to 25 MB).
 
 ---
 
@@ -203,12 +185,12 @@ Russian Heavy Tank JS-2 Model 1944 ChKZ,32571,Tamiya,1:48
 | **Min SDK** | 26 (Android 8.0) |
 | **UI** | Material Components 3, ViewPager2, RecyclerView |
 | **Data** | Room (SQLite), LiveData, ViewModel |
-| **Images** | Glide; photo shrinking with Android's own `BitmapFactory` |
-| **Files** | Storage Access Framework (backup, restore, CSV), photo picker |
+| **Images** | Glide; photo resizing with Android's own `BitmapFactory` |
+| **Files** | Storage Access Framework (CSV export & import), photo picker |
 | **Splash / shortcuts** | AndroidX Core SplashScreen, ShortcutManagerCompat |
 | **Tests** | JUnit 4 (JVM unit tests) and AndroidX instrumented tests |
 
-No new libraries were added in 1.6: zip files, CSV, photo shrinking and the zoom viewer use plain Java and the Android SDK.
+No new libraries were added in 1.6: CSV, photo resizing and the zoom viewer use plain Java and the Android SDK.
 
 ---
 
@@ -217,14 +199,13 @@ No new libraries were added in 1.6: zip files, CSV, photo shrinking and the zoom
 ```mermaid
 flowchart TD
     UI["Activities & Fragments<br/>Home · Catalogue · Wishlist · Brands · Detail · Viewer · Add/Edit"] --> VM["MainViewModel<br/>(LiveData)"]
-    UI --> IVM["PhotoImportViewModel<br/>copies & shrinks photos"]
-    UI --> DVM["DataTaskViewModel<br/>backup · restore · export"]
+    UI --> IVM["PhotoImportViewModel<br/>copies & resizes photos"]
+    UI --> DVM["DataTaskViewModel<br/>CSV export · import"]
     UI --> REPO[ModelRepository]
     VM --> REPO
     IVM --> PS
-    DVM --> BM["BackupManager<br/>+ BackupFormat"]
-    BM --> DAO
-    BM --> PS
+    DVM --> DAO
+    DVM --> CSV
     REPO --> DAO["ModelDao (Room)"]
     DAO --> DB1[("models")]
     DAO --> DB2[("model_photos")]
@@ -234,14 +215,14 @@ flowchart TD
 
     classDef navy fill:#0D1C42,stroke:#22396F,color:#FCF1D0
     classDef store fill:#22396F,stroke:#FCF1D0,color:#FCF1D0
-    class UI,VM,IVM,DVM,BM,REPO,DAO,SM,CSV navy
+    class UI,VM,IVM,DVM,REPO,DAO,SM,CSV navy
     class DB1,DB2,PS store
 ```
 
 - Screens never touch the database directly. They go through `ModelRepository`, which does all writes on a background thread.
-- Queries return `LiveData`, so every list updates itself when the data changes, including after a restore.
+- Queries return `LiveData`, so every list updates itself when the data changes, including after an import.
 - A kit and its photos are saved in **one transaction**. Photo files are deleted only after the database write succeeds, so a crash can't lose a photo that's still in use.
-- **Long jobs live in ViewModels** (photo copying, backups), so they keep running and report back when the screen rotates.
+- **Long jobs live in ViewModels** (photo copying, CSV export and import), so they keep running and report back when the screen rotates.
 - **Undo delete** keeps the photo files until the undo chance has passed. A tidy-up at start-up removes files that nothing refers to any more, but only ones older than a day.
 - `models.photo_path` always mirrors the cover photo, so every card shows a photo without an extra query.
 
@@ -254,11 +235,8 @@ flowchart TD
 
 ```
 app/src/main/java/com/sarthak/modelstash/
-├── MainActivity.java            Home screen: toolbar, tabs, + button, selection bar, Backup & data menu
+├── MainActivity.java            Home screen: toolbar, tabs, + button, selection bar, Import & export menu
 ├── ModelStashApp.java           Theme, wipe transitions, launcher shortcuts, photo tidy-up
-├── backup/
-│   ├── BackupFormat.java        What goes inside a backup .zip, and how it's read back
-│   └── BackupManager.java       Back up, restore, CSV export, shrink stored photos
 ├── data/
 │   ├── ModelKit.java            Entity: one kit
 │   ├── ModelPhoto.java          Entity: one photo of a kit (path, label, position)
@@ -280,8 +258,8 @@ app/src/main/java/com/sarthak/modelstash/
 │   ├── PhotoViewerActivity.java Full-screen photos
 │   ├── ZoomImageView.java       Pinch, drag and double-tap zoom
 │   ├── AddEditModelActivity.java  Add/edit, duplicate warning, discard check
-│   ├── PhotoImportViewModel.java  Copies and shrinks picked photos in the background
-│   ├── DataTaskViewModel.java     Runs backup / restore / export / shrink
+│   ├── PhotoImportViewModel.java  Copies and resizes new photos in the background
+│   ├── DataTaskViewModel.java     Runs CSV export / import in the background
 │   ├── UndoDeleteSnackbar.java    "Deleted … · UNDO"
 │   ├── ModelAdapter.java, BrandAdapter.java
 │   ├── PhotoStripAdapter.java   Photo tiles on the edit screen
@@ -354,14 +332,14 @@ Scalemates has no public API. Its `robots.txt` blocks automated access to search
 
 | Version | Date | Notes |
 | :---: | :---: | --- |
-| [**1.6**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.6) | November 2026 | Backup & restore, CSV export, smaller photos (plus *Shrink stored photos*), duplicate warning, *Discard changes?*, full-screen photo viewer with zoom, undo delete, app icon shortcuts, multi-select, and a fix for crashes when adding several photos from the gallery. |
+| [**1.6**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.6) | November 2026 | Export & import your whole list as CSV, smaller photos, duplicate warning, *Discard changes?*, full-screen photo viewer with zoom, undo delete, app icon shortcuts, multi-select, and a fix for crashes when adding several photos from the gallery. |
 | [**1.5**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.5) | November 2026 | First public release on GitHub: catalogue, wishlist, build status, photo carousel with labels, Scalemates link import, CSV import, Midnight and Paper themes. |
 
 ---
 
 ## 🧪 Tests
 
-**JVM unit tests** (no phone needed) cover the logic: scale parsing, Scalemates page parsing, stats and sorting, the CSV importer and exporter, the backup file format (round trip, newer and older versions, unsafe file names), the duplicate rules, the unsaved-changes check, photo sizing, and the photo list (six-photo limit, cover, reordering, labels).
+**JVM unit tests** (no phone needed) cover the logic: scale parsing, Scalemates page parsing, stats and sorting, the CSV exporter and importer (round trip of every field, common column spellings, old four-column files, skipping kits you already have), the duplicate rules, the unsaved-changes check, photo sizing, and the photo list (six-photo limit, cover, reordering, labels).
 
 In Android Studio, right-click `app/src/test/java` → **Run 'Tests in …'**, or from the terminal:
 
@@ -373,8 +351,7 @@ On Windows PowerShell, use `.\gradlew test`.
 
 **Instrumented tests** (on a phone or emulator) check:
 
-- **Backup and restore:** a full round trip, plus refusing a file that isn't a backup. It uses a throw-away database, never your collection.
-- **Photo shrinking.**
+- **Photo resizing:** big photos resized to 2560 px, small ones and non-pictures left alone.
 - **Gallery import:** good photos arrive, bad ones are skipped, and nothing is left behind.
 
 Right-click `app/src/androidTest/java` → **Run**.

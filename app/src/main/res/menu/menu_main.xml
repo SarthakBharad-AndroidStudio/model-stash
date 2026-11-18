@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <!-- Back up, restore, export / import CSV, shrink stored photos -->
+    <!-- Export / import the list as CSV -->
     <item
         android:id="@+id/action_data"
-        android:icon="@drawable/ic_backup"
+        android:icon="@drawable/ic_import_export"
         android:title="@string/data_title"
         app:showAsAction="ifRoom" />
     <item

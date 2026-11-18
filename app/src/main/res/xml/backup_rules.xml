@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Android's automatic Google backup (Android 11 and older). It only keeps up to
-    25 MB per app, so it takes the kit list and settings but not the photos;
-    use Backup & data in the app for a complete backup with photos.
+    25 MB per app, so it takes the kit list and settings but not the photos.
+    In the app, Import & export saves the list as a CSV you keep yourself.
 -->
 <full-backup-content>
     <include domain="database" path="." />

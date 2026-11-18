@@ -168,54 +168,25 @@
     </plurals>
     <string name="error_no_gallery">No photo picker found on this phone</string>
 
-    <!-- Backup & data -->
-    <string name="data_title">Backup &amp; data</string>
-    <string name="data_backup_never">Back up now · never backed up</string>
-    <string name="data_backup_last">Back up now · last: %1$s</string>
-    <string name="data_restore">Restore from a backup</string>
-    <string name="data_export_csv">Export as spreadsheet (CSV)</string>
+    <!-- Import & export -->
+    <string name="data_title">Import &amp; export</string>
+    <string name="data_export_never">Export to spreadsheet (CSV) · never exported</string>
+    <string name="data_export_last">Export to spreadsheet (CSV) · last: %1$s</string>
+    <string name="task_importing">Importing…</string>
+    <string name="export_failed">Couldn\'t write the file. Nothing was saved.</string>
+    <plurals name="import_skipped">
+        <item quantity="one">skipped 1 you already have</item>
+        <item quantity="other">skipped %d you already have</item>
+    </plurals>
     <string name="data_import_csv">Import from spreadsheet (CSV)</string>
-    <string name="data_shrink">Shrink stored photos</string>
     <string name="error_no_files_app">No app found to save or open files</string>
-    <string name="task_backing_up">Backing up…</string>
-    <string name="task_reading_backup">Reading the backup…</string>
-    <string name="task_restoring">Restoring…</string>
     <string name="task_exporting">Exporting…</string>
-    <string name="task_shrinking">Shrinking photos…</string>
-    <string name="task_working">Working…</string>
     <string name="task_progress">%1$d of %2$d</string>
-    <string name="task_progress_count">%1$d photos read</string>
     <string name="task_failed">Something went wrong. Nothing was changed.</string>
-    <plurals name="backup_done">
-        <item quantity="one">Backed up 1 kit and %2$d photos</item>
-        <item quantity="other">Backed up %1$d kits and %2$d photos</item>
-    </plurals>
-    <plurals name="restore_done">
-        <item quantity="one">Restored 1 kit and %2$d photos</item>
-        <item quantity="other">Restored %1$d kits and %2$d photos</item>
-    </plurals>
     <plurals name="export_done">
         <item quantity="one">Exported 1 kit</item>
         <item quantity="other">Exported %1$d kits</item>
     </plurals>
-    <string name="backup_cant_write">Couldn\'t write the file. Nothing was saved.</string>
-    <string name="restore_cant_read">Couldn\'t read that file. Nothing was changed.</string>
-    <string name="restore_not_a_backup">That isn\'t a Model Stash backup. Nothing was changed.</string>
-    <string name="restore_too_new">This backup was made by a newer version of Model Stash. Update the app, then try again.</string>
-    <string name="restore_damaged">That backup looks damaged. Nothing was changed.</string>
-    <string name="restore_failed">Restoring failed. Nothing was changed.</string>
-    <string name="restore_title">Restore this backup?</string>
-    <plurals name="restore_message">
-        <item quantity="one">Backup from %1$s with 1 kit and %3$d photos.\n\nIt replaces every kit and photo on this phone. This can\'t be undone, so back up first if you\'re unsure.</item>
-        <item quantity="other">Backup from %1$s with %2$d kits and %3$d photos.\n\nIt replaces every kit and photo on this phone. This can\'t be undone, so back up first if you\'re unsure.</item>
-    </plurals>
-    <string name="restore_unknown_date">an unknown date</string>
-    <string name="restore_go">Restore</string>
-    <string name="shrink_title">Shrink stored photos?</string>
-    <string name="shrink_message">Photos bigger than 2560 px are saved again as smaller JPEGs (usually around 0.5 MB each). They look the same on your phone, take far less space, and make backups much smaller. This can\'t be undone.</string>
-    <string name="shrink_go">Shrink</string>
-    <string name="shrink_done">Done: freed %1$s</string>
-    <string name="shrink_nothing">All photos were already small</string>
     <string name="csv_list_stash">Stash</string>
     <string name="csv_list_wishlist">Wishlist</string>
 
