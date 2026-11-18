@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The selection bar's actions (multi-select on the Catalogue and Wishlist tabs). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_selection_all"
+        android:icon="@drawable/ic_select_all"
+        android:title="@string/selection_all"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_selection_status"
+        android:icon="@drawable/ic_edit"
+        android:title="@string/selection_status"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_selection_to_stash"
+        android:icon="@drawable/ic_cart"
+        android:title="@string/selection_to_stash"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_selection_delete"
+        android:icon="@drawable/ic_delete"
+        android:title="@string/selection_delete"
+        app:showAsAction="ifRoom" />
+</menu>

@@ -1,6 +1,7 @@
 package com.sarthak.modelstash.util;
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 
 import androidx.annotation.Nullable;
@@ -23,6 +24,11 @@ public final class PhotoStorage {
     private PhotoStorage() {
     }
 
+    /** The folder all kit photos live in. */
+    public static File folder(Context context) {
+        return photoDir(context);
+    }
+
     private static File photoDir(Context context) {
         File dir = new File(context.getFilesDir(), "photos");
         if (!dir.exists()) {
@@ -42,7 +48,13 @@ public final class PhotoStorage {
         return FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
     }
 
-    /** Copies a picked gallery image into private storage. Call off the main thread. */
+    /**
+     * Copies a picked gallery image into private storage. Call off the main thread.
+     *
+     * Throws IOException, and leaves no file behind, when the image can't be read
+     * (a cloud photo that isn't on the phone, access withdrawn, storage full) or
+     * when what was copied isn't a picture the app can show.
+     */
     public static File copyFromUri(Context context, Uri source) throws IOException {
         File target = newPhotoFile(context);
         try (InputStream in = context.getContentResolver().openInputStream(source);
@@ -50,7 +62,7 @@ public final class PhotoStorage {
             if (in == null) {
                 throw new IOException("Could not open the selected image");
             }
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[64 * 1024];
             int read;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
@@ -59,8 +71,30 @@ public final class PhotoStorage {
             //noinspection ResultOfMethodCallIgnored
             target.delete();
             throw e;
+        } catch (RuntimeException e) {
+            // SecurityException, IllegalArgumentException, IllegalStateException...: the
+            // provider can throw these too. Same treatment as an I/O error.
+            //noinspection ResultOfMethodCallIgnored
+            target.delete();
+            throw new IOException("Could not read the selected image", e);
+        }
+        if (!isImage(target)) {
+            //noinspection ResultOfMethodCallIgnored
+            target.delete();
+            throw new IOException("Not a picture: " + source);
         }
         return target;
+    }
+
+    /** true when the file is a picture Android can decode (only its size is read, not the pixels). */
+    public static boolean isImage(File file) {
+        if (file.length() == 0) {
+            return false;
+        }
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+        return bounds.outWidth > 0 && bounds.outHeight > 0;
     }
 
     public static void delete(@Nullable String path) {

@@ -59,6 +59,46 @@ public interface ModelDao {
             + "ORDER BY name COLLATE NOCASE")
     LiveData<List<ModelKit>> searchByName(String query);
 
+    // --- Everything at once (backup, duplicate check, bulk actions) ---
+
+    /** Every kit, owned and wishlist. */
+    @Query("SELECT * FROM models ORDER BY id")
+    List<ModelKit> getAllNow();
+
+    /** Every photo row, grouped by kit, in order. */
+    @Query("SELECT * FROM model_photos ORDER BY model_id, position")
+    List<ModelPhoto> getAllPhotosNow();
+
+    @Query("SELECT * FROM models WHERE id IN (:ids)")
+    List<ModelKit> getByIds(List<Long> ids);
+
+    @Query("SELECT * FROM model_photos WHERE model_id IN (:ids) ORDER BY model_id, position")
+    List<ModelPhoto> getPhotosFor(List<Long> ids);
+
+    /** Bulk "set build status"; wishlist kits are left alone (they have no status). */
+    @Query("UPDATE models SET build_status = :status WHERE wishlist = 0 AND id IN (:ids)")
+    int setStatus(List<Long> ids, int status);
+
+    /** Bulk "bought them": wishlist kits become owned, starting at Unbuilt. */
+    @Query("UPDATE models SET wishlist = 0, build_status = 0 WHERE wishlist = 1 AND id IN (:ids)")
+    int moveToStash(List<Long> ids);
+
+    @Query("DELETE FROM model_photos WHERE model_id IN (:ids)")
+    void deletePhotosFor(List<Long> ids);
+
+    @Query("DELETE FROM models WHERE id IN (:ids)")
+    void deleteByIds(List<Long> ids);
+
+    @Query("DELETE FROM model_photos")
+    void deleteAllPhotos();
+
+    @Query("DELETE FROM models")
+    void deleteAllModels();
+
+    /** Every photo file the database points at (photo rows and covers). */
+    @Query("SELECT path FROM model_photos UNION SELECT photo_path FROM models WHERE photo_path IS NOT NULL")
+    List<String> allReferencedPhotoPaths();
+
     // --- Models you want (wishlist = 1) ---
 
     @Query("SELECT * FROM models WHERE wishlist = 1 ORDER BY created_at DESC")

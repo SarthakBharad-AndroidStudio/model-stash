@@ -88,6 +88,11 @@
         <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
         <item name="cardCornerRadius">20dp</item>
         <item name="android:stateListAnimator">@animator/press_scale</item>
+        <!-- Multi-select: a tick in the corner while selected (only on checkable cards) -->
+        <item name="checkedIcon">@drawable/ic_check_circle</item>
+        <item name="checkedIconTint">?attr/colorPrimary</item>
+        <item name="checkedIconSize">28dp</item>
+        <item name="checkedIconMargin">10dp</item>
     </style>
 
     <style name="Widget.ModelStash.TextField" parent="Widget.Material3.TextInputLayout.FilledBox">

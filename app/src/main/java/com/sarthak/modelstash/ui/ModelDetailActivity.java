@@ -109,6 +109,12 @@ public class ModelDetailActivity extends AppCompatActivity {
         dots = findViewById(R.id.dots_photos);
         pagerAdapter = new PhotoPagerAdapter();
         pager.setAdapter(pagerAdapter);
+        // Tap a photo: full screen, with pinch-to-zoom.
+        pagerAdapter.setOnPhotoClickListener(position -> {
+            if (current != null) {
+                PhotoViewerActivity.start(this, current.id, position);
+            }
+        });
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -278,7 +284,7 @@ public class ModelDetailActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_delete && current != null) {
-            confirmDelete();
+            deleteWithUndo();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -290,19 +296,18 @@ public class ModelDetailActivity extends AppCompatActivity {
         return true;
     }
 
-    private void confirmDelete() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(getString(R.string.delete_title, current.name))
-                .setMessage(R.string.delete_message)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.delete, (dialog, which) -> {
-                    if (!deleting) {
-                        deleting = true;
-                        Haptics.confirm(findViewById(R.id.root));
-                        repository.delete(current, this::finish);
-                    }
-                })
-                .show();
+    /**
+     * Deletes straight away and closes; the screen you land on shows
+     * "Deleted … · UNDO" for a few seconds (UndoDeleteSnackbar), so a slip of the
+     * finger costs nothing. The photos are only removed once that chance has passed.
+     */
+    private void deleteWithUndo() {
+        if (deleting) {
+            return;
+        }
+        deleting = true;
+        Haptics.confirm(findViewById(R.id.root));
+        repository.deleteWithUndo(Collections.singletonList(current), this::finish);
     }
 
     /** Marks a wanted kit as owned, so it moves from the Wishlist to the Catalogue. */

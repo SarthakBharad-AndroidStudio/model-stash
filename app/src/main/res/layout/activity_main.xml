@@ -20,7 +20,6 @@
             app:liftOnScroll="true">
 
             <!-- Logo + app name in Tanker -->
-            <!-- Logo + app name in Tanker -->
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
@@ -47,6 +46,17 @@
                         android:textColor="?attr/colorOnSurface" />
                 </LinearLayout>
             </com.google.android.material.appbar.MaterialToolbar>
+
+            <!-- Replaces the toolbar while kits are selected: "3 selected" + actions -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar_selection"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorSecondaryContainer"
+                android:visibility="gone"
+                app:navigationContentDescription="@string/selection_close"
+                app:navigationIcon="@drawable/ic_close"
+                app:titleTextColor="?attr/colorOnSecondaryContainer" />
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.fragment.app.FragmentContainerView

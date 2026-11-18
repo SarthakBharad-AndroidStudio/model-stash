@@ -34,6 +34,8 @@ public class MainViewModel extends AndroidViewModel {
     private final MutableLiveData<String> query = new MutableLiveData<>("");
     private final MutableLiveData<ModelSort.Mode> sortMode = new MutableLiveData<>(ModelSort.Mode.NAME);
     private final MutableLiveData<Integer> statusFilter = new MutableLiveData<>(STATUS_ANY);
+    /** true = the Catalogue should focus its search field (the "Search stash" shortcut). */
+    private final MutableLiveData<Boolean> focusSearch = new MutableLiveData<>(false);
 
     public final LiveData<List<ModelKit>> recent;
     /** The kits you have started, newest first. */
@@ -65,6 +67,20 @@ public class MainViewModel extends AndroidViewModel {
         shown.addSource(sortMode, mode -> rebuild.run());
         shown.addSource(statusFilter, status -> rebuild.run());
         visibleModels = shown;
+    }
+
+    /** Asks the Catalogue to focus its search field and show the keyboard. */
+    public void requestSearchFocus() {
+        focusSearch.setValue(true);
+    }
+
+    public LiveData<Boolean> focusSearchRequests() {
+        return focusSearch;
+    }
+
+    /** The Catalogue did it; don't do it again after a rotation. */
+    public void searchFocused() {
+        focusSearch.setValue(false);
     }
 
     public void setQuery(String newQuery) {

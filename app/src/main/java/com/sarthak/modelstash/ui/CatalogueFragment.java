@@ -12,6 +12,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -31,7 +33,11 @@ import com.sarthak.modelstash.util.ModelSort;
 
 import java.util.List;
 
-/** Tab 2: every model as a photo grid, with search, sorting and a clear "do I own it?" answer. */
+/**
+ * Tab 2: every model as a photo grid, with search, sorting and a clear "do I own it?" answer.
+ * Hold a card to select several (set status, delete). The "Search stash" shortcut
+ * lands here with the keyboard up.
+ */
 public class CatalogueFragment extends Fragment {
 
     private MainViewModel viewModel;
@@ -42,6 +48,8 @@ public class CatalogueFragment extends Fragment {
     private boolean listAnimated;
     /** Everything you own, so a filtered count can say "showing 4 of 46". */
     private int totalOwned;
+    @Nullable
+    private KitSelection selection;
 
     public CatalogueFragment() {
         super(R.layout.fragment_catalogue);
@@ -65,6 +73,7 @@ public class CatalogueFragment extends Fragment {
                 (model, photo) -> ModelDetailActivity.start(requireActivity(), model.id, photo));
         grid.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         grid.setAdapter(adapter);
+        selection = new KitSelection(this, adapter, false, savedInstanceState);
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -122,14 +131,48 @@ public class CatalogueFragment extends Fragment {
             startActivity(intent);
         });
 
+        // The "Search stash" shortcut: focus the field and bring the keyboard up.
+        viewModel.focusSearchRequests().observe(getViewLifecycleOwner(), focus -> {
+            if (!Boolean.TRUE.equals(focus)) {
+                return;
+            }
+            viewModel.searchFocused();
+            searchInput.postDelayed(() -> { // after the tab has wiped in
+                if (getView() == null) {
+                    return;
+                }
+                searchInput.requestFocus();
+                WindowCompat.getInsetsController(requireActivity().getWindow(), searchInput)
+                        .show(WindowInsetsCompat.Type.ime());
+            }, 350);
+        });
+
+        KitSelection kitSelection = selection;
         viewModel.visibleModels.observe(getViewLifecycleOwner(), models -> {
-            adapter.submitList(models);
+            adapter.submitList(models, kitSelection::onListShown);
             showOwnership(models);
             if (!listAnimated && !models.isEmpty()) {
                 listAnimated = true;
                 grid.scheduleLayoutAnimation(); // cards rise in one after another, once
             }
         });
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (selection != null) {
+            selection.save(outState);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (selection != null) {
+            selection.end();
+            selection = null;
+        }
+        super.onDestroyView();
     }
 
     private static int chipFor(ModelSort.Mode mode) {

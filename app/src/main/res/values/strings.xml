@@ -157,5 +157,122 @@
     <string name="photo_counter">%1$s · %2$d of %3$d</string>
     <string name="photo_description">%1$s photo</string>
 
+    <!-- Gallery import -->
+    <plurals name="photos_importing">
+        <item quantity="one">Adding 1 photo…</item>
+        <item quantity="other">Adding %d photos…</item>
+    </plurals>
+    <plurals name="photos_failed">
+        <item quantity="one">1 photo couldn\'t be added. If it\'s in the cloud, open it in your gallery first, then try again.</item>
+        <item quantity="other">%d photos couldn\'t be added. If they\'re in the cloud, open them in your gallery first, then try again.</item>
+    </plurals>
+    <string name="error_no_gallery">No photo picker found on this phone</string>
+
+    <!-- Backup & data -->
+    <string name="data_title">Backup &amp; data</string>
+    <string name="data_backup_never">Back up now · never backed up</string>
+    <string name="data_backup_last">Back up now · last: %1$s</string>
+    <string name="data_restore">Restore from a backup</string>
+    <string name="data_export_csv">Export as spreadsheet (CSV)</string>
+    <string name="data_import_csv">Import from spreadsheet (CSV)</string>
+    <string name="data_shrink">Shrink stored photos</string>
+    <string name="error_no_files_app">No app found to save or open files</string>
+    <string name="task_backing_up">Backing up…</string>
+    <string name="task_reading_backup">Reading the backup…</string>
+    <string name="task_restoring">Restoring…</string>
+    <string name="task_exporting">Exporting…</string>
+    <string name="task_shrinking">Shrinking photos…</string>
+    <string name="task_working">Working…</string>
+    <string name="task_progress">%1$d of %2$d</string>
+    <string name="task_progress_count">%1$d photos read</string>
+    <string name="task_failed">Something went wrong. Nothing was changed.</string>
+    <plurals name="backup_done">
+        <item quantity="one">Backed up 1 kit and %2$d photos</item>
+        <item quantity="other">Backed up %1$d kits and %2$d photos</item>
+    </plurals>
+    <plurals name="restore_done">
+        <item quantity="one">Restored 1 kit and %2$d photos</item>
+        <item quantity="other">Restored %1$d kits and %2$d photos</item>
+    </plurals>
+    <plurals name="export_done">
+        <item quantity="one">Exported 1 kit</item>
+        <item quantity="other">Exported %1$d kits</item>
+    </plurals>
+    <string name="backup_cant_write">Couldn\'t write the file. Nothing was saved.</string>
+    <string name="restore_cant_read">Couldn\'t read that file. Nothing was changed.</string>
+    <string name="restore_not_a_backup">That isn\'t a Model Stash backup. Nothing was changed.</string>
+    <string name="restore_too_new">This backup was made by a newer version of Model Stash. Update the app, then try again.</string>
+    <string name="restore_damaged">That backup looks damaged. Nothing was changed.</string>
+    <string name="restore_failed">Restoring failed. Nothing was changed.</string>
+    <string name="restore_title">Restore this backup?</string>
+    <plurals name="restore_message">
+        <item quantity="one">Backup from %1$s with 1 kit and %3$d photos.\n\nIt replaces every kit and photo on this phone. This can\'t be undone, so back up first if you\'re unsure.</item>
+        <item quantity="other">Backup from %1$s with %2$d kits and %3$d photos.\n\nIt replaces every kit and photo on this phone. This can\'t be undone, so back up first if you\'re unsure.</item>
+    </plurals>
+    <string name="restore_unknown_date">an unknown date</string>
+    <string name="restore_go">Restore</string>
+    <string name="shrink_title">Shrink stored photos?</string>
+    <string name="shrink_message">Photos bigger than 2560 px are saved again as smaller JPEGs (usually around 0.5 MB each). They look the same on your phone, take far less space, and make backups much smaller. This can\'t be undone.</string>
+    <string name="shrink_go">Shrink</string>
+    <string name="shrink_done">Done: freed %1$s</string>
+    <string name="shrink_nothing">All photos were already small</string>
+    <string name="csv_list_stash">Stash</string>
+    <string name="csv_list_wishlist">Wishlist</string>
+
+    <!-- Duplicate check -->
+    <plurals name="duplicate_title">
+        <item quantity="one">You may already have this kit</item>
+        <item quantity="other">You may already have this kit</item>
+    </plurals>
+    <string name="duplicate_message">Looks like:\n%1$s</string>
+    <string name="duplicate_in_stash">in your stash</string>
+    <string name="duplicate_on_wishlist">on your wishlist</string>
+    <string name="duplicate_more">…and %1$d more</string>
+    <string name="duplicate_save_anyway">Save anyway</string>
+    <string name="duplicate_open">Open it</string>
+
+    <!-- Unsaved changes -->
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_message">You have changes that haven\'t been saved.</string>
+    <string name="discard_keep">Keep editing</string>
+    <string name="discard_go">Discard</string>
+
+    <!-- Photo viewer -->
+    <string name="viewer_close">Close</string>
+
+    <!-- Undo delete -->
+    <string name="undo">Undo</string>
+    <string name="deleted_one">Deleted “%1$s”</string>
+    <plurals name="deleted_many">
+        <item quantity="one">Deleted 1 kit</item>
+        <item quantity="other">Deleted %d kits</item>
+    </plurals>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_search_short">Search</string>
+    <string name="shortcut_search_long">Search my stash</string>
+    <string name="shortcut_add_short">Add kit</string>
+    <string name="shortcut_add_long">Add a kit to my stash</string>
+    <string name="shortcut_wish_short">Wishlist</string>
+    <string name="shortcut_wish_long">Add to my wishlist</string>
+
+    <!-- Multi-select -->
+    <plurals name="selection_count">
+        <item quantity="one">1 selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="selection_close">Stop selecting</string>
+    <string name="selection_all">Select all</string>
+    <string name="selection_status">Set build status</string>
+    <string name="selection_to_stash">Move to stash</string>
+    <string name="selection_delete">Delete</string>
+    <plurals name="status_set_many">
+        <item quantity="one">1 kit marked as %2$s</item>
+        <item quantity="other">%1$d kits marked as %2$s</item>
+    </plurals>
+    <plurals name="moved_many">
+        <item quantity="one">1 kit moved to your stash</item>
+        <item quantity="other">%d kits moved to your stash</item>
+    </plurals>
 
 </resources>

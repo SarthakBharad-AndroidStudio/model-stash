@@ -16,16 +16,27 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
+import com.google.android.material.card.MaterialCardView;
 import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
 import com.sarthak.modelstash.util.BuildStatus;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Model cards for both tabs. Pass R.layout.item_model_carousel (dashboard)
  * or R.layout.item_model_grid (catalogue); both use the same view ids.
+ *
+ * Optional multi-select (enableSelection): hold a card to start selecting, then
+ * tap cards to add or remove them; selected cards show a tick. The selection
+ * follows the list: kits that disappear (search, filter, deleted) drop out of it.
  */
 public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder> {
 
@@ -46,18 +57,121 @@ public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder>
                     && Objects.equals(a.scale, b.scale)
                     && Objects.equals(a.brand, b.brand)
                     && Objects.equals(a.photoPath, b.photoPath)
+                    && a.buildStatus == b.buildStatus   // the card shows the stage
+                    && a.wishlist == b.wishlist
                     && a.createdAt == b.createdAt;
         }
     };
 
+    /** Told whenever the number of selected kits changes (0 = selection over). */
+    public interface SelectionListener {
+        void onSelectionChanged(int count);
+    }
+
+    private static final Object PAYLOAD_SELECTION = new Object();
+
     @LayoutRes
     private final int itemLayout;
     private final OnModelClickListener listener;
+    @androidx.annotation.Nullable
+    private SelectionListener selectionListener;
+    private final Set<Long> selected = new LinkedHashSet<>();
 
     public ModelAdapter(@LayoutRes int itemLayout, OnModelClickListener listener) {
         super(DIFF);
         this.itemLayout = itemLayout;
         this.listener = listener;
+    }
+
+    // ---- Selection ----
+
+    /** Turns on hold-to-select for this list. */
+    public void enableSelection(SelectionListener listener) {
+        selectionListener = listener;
+    }
+
+    public boolean isSelecting() {
+        return !selected.isEmpty();
+    }
+
+    public int selectedCount() {
+        return selected.size();
+    }
+
+    public List<Long> selectedIds() {
+        return new ArrayList<>(selected);
+    }
+
+    /** The selected kits, in list order. */
+    public List<ModelKit> selectedKits() {
+        List<ModelKit> out = new ArrayList<>();
+        for (ModelKit m : getCurrentList()) {
+            if (selected.contains(m.id)) {
+                out.add(m);
+            }
+        }
+        return out;
+    }
+
+    public void selectAll() {
+        for (ModelKit m : getCurrentList()) {
+            selected.add(m.id);
+        }
+        notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
+        selectionChanged();
+    }
+
+    public void clearSelection() {
+        if (selected.isEmpty()) {
+            return;
+        }
+        selected.clear();
+        notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
+        selectionChanged();
+    }
+
+    /** Restores a selection (after rotation); ids no longer in the list are ignored. */
+    public void setSelection(Collection<Long> ids) {
+        selected.clear();
+        Set<Long> present = new HashSet<>();
+        for (ModelKit m : getCurrentList()) {
+            present.add(m.id);
+        }
+        for (Long id : ids) {
+            if (present.contains(id)) {
+                selected.add(id);
+            }
+        }
+        notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
+        selectionChanged();
+    }
+
+    private void toggle(ModelKit model, int position) {
+        if (!selected.remove(model.id)) {
+            selected.add(model.id);
+        }
+        notifyItemChanged(position, PAYLOAD_SELECTION);
+        selectionChanged();
+    }
+
+    private void selectionChanged() {
+        if (selectionListener != null) {
+            selectionListener.onSelectionChanged(selected.size());
+        }
+    }
+
+    @Override
+    public void onCurrentListChanged(@NonNull List<ModelKit> previous, @NonNull List<ModelKit> current) {
+        if (selected.isEmpty()) {
+            return;
+        }
+        Set<Long> present = new HashSet<>();
+        for (ModelKit m : current) {
+            present.add(m.id);
+        }
+        if (selected.retainAll(present)) {
+            selectionChanged();
+        }
     }
 
     /** "1:48 · Tamiya", "1:48", "Tamiya" or "". */
@@ -110,6 +224,25 @@ public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder>
     }
 
     @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads.contains(PAYLOAD_SELECTION) && payloads.size() == 1) {
+            showChecked(holder, getItem(position)); // only the tick changed: don't reload the photo
+            return;
+        }
+        super.onBindViewHolder(holder, position, payloads);
+    }
+
+    private void showChecked(ViewHolder holder, ModelKit model) {
+        boolean checked = selected.contains(model.id);
+        if (holder.itemView instanceof MaterialCardView) {
+            MaterialCardView card = (MaterialCardView) holder.itemView;
+            card.setCheckable(selectionListener != null);
+            card.setChecked(checked);
+        }
+        holder.photo.setAlpha(checked ? 0.6f : 1f); // selected cards fade back a little behind the tick
+    }
+
+    @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ModelKit model = getItem(position);
         holder.name.setText(model.name);
@@ -118,7 +251,32 @@ public class ModelAdapter extends ListAdapter<ModelKit, ModelAdapter.ViewHolder>
         holder.meta.setVisibility(meta.isEmpty() ? View.INVISIBLE : View.VISIBLE);
         ViewCompat.setTransitionName(holder.photo, photoTransitionName(model.id));
         loadPhoto(holder.photo, model);
-        holder.itemView.setOnClickListener(v -> listener.onModelClick(model, holder.photo));
+        showChecked(holder, model);
+        holder.itemView.setOnClickListener(v -> {
+            int at = holder.getBindingAdapterPosition();
+            if (at == RecyclerView.NO_POSITION) {
+                return;
+            }
+            if (isSelecting()) {
+                toggle(getItem(at), at); // while selecting, a tap adds or removes
+            } else {
+                listener.onModelClick(getItem(at), holder.photo);
+            }
+        });
+        if (selectionListener != null) {
+            holder.itemView.setOnLongClickListener(v -> {
+                int at = holder.getBindingAdapterPosition();
+                if (at == RecyclerView.NO_POSITION) {
+                    return false;
+                }
+                toggle(getItem(at), at);
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                return true;
+            });
+        } else {
+            holder.itemView.setOnLongClickListener(null);
+            holder.itemView.setLongClickable(false);
+        }
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

@@ -56,6 +56,12 @@
             android:exported="false"
             android:label="@string/title_details" />
 
+        <!-- A kit's photos full screen, with pinch-to-zoom -->
+        <activity
+            android:name=".ui.PhotoViewerActivity"
+            android:exported="false"
+            android:label="@string/title_details" />
+
         <!-- Gives the camera app temporary permission to write one photo file. -->
         <provider
             android:name="androidx.core.content.FileProvider"

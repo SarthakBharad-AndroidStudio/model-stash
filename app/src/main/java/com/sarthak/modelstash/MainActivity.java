@@ -1,13 +1,16 @@
 package com.sarthak.modelstash;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
@@ -17,12 +20,14 @@ import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -39,6 +44,9 @@ import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.ui.AddEditModelActivity;
 import com.sarthak.modelstash.ui.CatalogueFragment;
 import com.sarthak.modelstash.ui.DashboardFragment;
+import com.sarthak.modelstash.ui.DataTaskViewModel;
+import com.sarthak.modelstash.ui.MainViewModel;
+import com.sarthak.modelstash.ui.UndoDeleteSnackbar;
 import com.sarthak.modelstash.ui.WishlistFragment;
 import com.sarthak.modelstash.util.CsvImport;
 import com.sarthak.modelstash.util.Haptics;
@@ -49,8 +57,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Home screen: toolbar with logo, the current tab, the "Add model" button and the bottom bar.
@@ -61,7 +73,24 @@ import java.util.List;
  */
 public class MainActivity extends AppCompatActivity {
 
+    /** Used by the "Search stash" launcher shortcut: open the Catalogue with the keyboard up. */
+    public static final String ACTION_SEARCH = "com.sarthak.modelstash.action.SEARCH";
+
     private static final String STATE_TAB = "tab";
+
+    /**
+     * Multi-select on the Catalogue and Wishlist tabs: while kits are selected the
+     * toolbar turns into a selection bar ("3 selected" with actions), the + button
+     * hides, and back clears the selection. The tab supplies the actions.
+     */
+    public interface SelectionActions {
+        void onCreateMenu(Menu menu);
+
+        boolean onMenuItem(MenuItem item);
+
+        /** The bar was closed (✕, back, or switching tab): clear the selection. */
+        void onSelectionClosed();
+    }
 
     private BottomNavigationView bottomNav;
     private ExtendedFloatingActionButton fab;
@@ -71,6 +100,16 @@ public class MainActivity extends AppCompatActivity {
     private int currentTab = R.id.nav_dashboard;
     /** True while the Wishlist tab is showing: the + button then adds a wanted kit. */
     private boolean onWishlistTab;
+    private MaterialToolbar toolbar;
+    private MaterialToolbar selectionToolbar;
+    @Nullable
+    private SelectionActions selectionActions;
+    private MainViewModel mainViewModel;
+    private DataTaskViewModel dataTasks;
+    @Nullable
+    private AlertDialog progressDialog;
+    @Nullable
+    private TextView progressText;
 
     /** Opens the system file picker for a CSV to import. */
     private final ActivityResultLauncher<String[]> pickCsv =
@@ -79,6 +118,37 @@ public class MainActivity extends AppCompatActivity {
                     importCsv(uri);
                 }
             });
+
+    // ---- Backup & data: the system "save as" / "open" screens ----
+
+    private final ActivityResultLauncher<String> createBackup =
+            registerForActivityResult(new ActivityResultContracts.CreateDocument("application/zip"), uri -> {
+                if (uri != null) {
+                    dataTasks.backup(uri);
+                }
+            });
+
+    private final ActivityResultLauncher<String[]> openBackup =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) {
+                    dataTasks.inspect(uri);
+                }
+            });
+
+    private final ActivityResultLauncher<String> createCsv =
+            registerForActivityResult(new ActivityResultContracts.CreateDocument("text/csv"), uri -> {
+                if (uri != null) {
+                    dataTasks.exportCsv(uri);
+                }
+            });
+
+    /** While kits are selected, back clears the selection (before "back to Home"). */
+    private final OnBackPressedCallback endSelectionOnBack = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            endSelection();
+        }
+    };
 
     /**
      * Back on any tab but Home goes to Home instead of closing the app. It's only
@@ -128,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         InsetsHelper.applySystemBars(findViewById(R.id.main), true, false);
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false); // our own logo + title are in the layout
 
@@ -137,6 +207,20 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(v -> openAddScreen(onWishlistTab));
 
         getOnBackPressedDispatcher().addCallback(this, backToHome);
+        getOnBackPressedDispatcher().addCallback(this, endSelectionOnBack); // added later = asked first
+
+        selectionToolbar = findViewById(R.id.toolbar_selection);
+        selectionToolbar.setNavigationOnClickListener(v -> endSelection());
+        selectionToolbar.setOnMenuItemClickListener(item ->
+                selectionActions != null && selectionActions.onMenuItem(item));
+
+        mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        dataTasks = new ViewModelProvider(this).get(DataTaskViewModel.class);
+        dataTasks.progress().observe(this, this::showProgress);
+        dataTasks.events().observe(this, this::onDataEvent);
+
+        // "Deleted … UNDO" after deleting a kit (here, on its page, or several at once).
+        UndoDeleteSnackbar.attach(this, findViewById(R.id.main), fab);
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(solidTabs, false);
 
         bottomNav = findViewById(R.id.bottom_nav);
@@ -155,6 +239,35 @@ public class MainActivity extends AppCompatActivity {
             // only our own notes about which tab it is need restoring.
             applyTabState(savedInstanceState.getInt(STATE_TAB, R.id.nav_dashboard), false);
         }
+        if (savedInstanceState == null) {
+            handleShortcut(getIntent());
+        }
+    }
+
+    @Override
+    protected void onNewIntent(@NonNull Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleShortcut(intent);
+    }
+
+    /** The "Search stash" shortcut: Catalogue tab, search field focused, keyboard up. */
+    private void handleShortcut(@Nullable Intent intent) {
+        if (intent == null || !ACTION_SEARCH.equals(intent.getAction())) {
+            return;
+        }
+        intent.setAction(Intent.ACTION_MAIN); // handled; don't repeat it
+        mainViewModel.requestSearchFocus();
+        bottomNav.setSelectedItemId(R.id.nav_catalogue);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (progressDialog != null) {
+            progressDialog.dismiss(); // shown again by the new screen after a rotation
+            progressDialog = null;
+        }
+        super.onDestroy();
     }
 
     @Override
@@ -175,9 +288,8 @@ public class MainActivity extends AppCompatActivity {
             chooseAppearance();
             return true;
         }
-        if (item.getItemId() == R.id.action_import) {
-            // Some file managers label CSVs as plain text, so accept both.
-            pickCsv.launch(new String[]{"text/csv", "text/comma-separated-values", "text/plain", "*/*"});
+        if (item.getItemId() == R.id.action_data) {
+            showDataMenu();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -215,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
     // ---- Tabs ----
 
     private void showTab(@IdRes int itemId) {
+        endSelection(); // a selection belongs to the tab it was made on
         Fragment fragment;
         if (itemId == R.id.nav_catalogue) {
             fragment = new CatalogueFragment();
@@ -335,6 +448,150 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    // ---- Multi-select (called by the Catalogue and Wishlist tabs) ----
+
+    /** Shows the selection bar with the tab's actions in place of the toolbar. */
+    public void startSelection(SelectionActions actions) {
+        if (selectionActions == actions) {
+            return;
+        }
+        if (selectionActions != null) {
+            endSelection();
+        }
+        selectionActions = actions;
+        Menu menu = selectionToolbar.getMenu();
+        menu.clear();
+        actions.onCreateMenu(menu);
+        toolbar.setVisibility(View.GONE);
+        selectionToolbar.setVisibility(View.VISIBLE);
+        appBar.setExpanded(true, true);
+        fab.hide();
+        endSelectionOnBack.setEnabled(true);
+        Haptics.tick(selectionToolbar);
+    }
+
+    public void setSelectionTitle(CharSequence title) {
+        selectionToolbar.setTitle(title);
+    }
+
+    /** Puts the normal toolbar back and tells the tab to clear its selection. */
+    public void endSelection() {
+        SelectionActions actions = selectionActions;
+        if (actions == null) {
+            return;
+        }
+        selectionActions = null;
+        selectionToolbar.setVisibility(View.GONE);
+        toolbar.setVisibility(View.VISIBLE);
+        fab.show();
+        endSelectionOnBack.setEnabled(false);
+        actions.onSelectionClosed();
+    }
+
+    public boolean isSelecting() {
+        return selectionActions != null;
+    }
+
+    // ---- Backup & data ----
+
+    private void showDataMenu() {
+        if (dataTasks.isBusy()) {
+            return;
+        }
+        long last = dataTasks.lastBackupAt();
+        String backup = last == 0
+                ? getString(R.string.data_backup_never)
+                : getString(R.string.data_backup_last, DateUtils.getRelativeTimeSpanString(
+                last, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS));
+        CharSequence[] items = {
+                backup,
+                getString(R.string.data_restore),
+                getString(R.string.data_export_csv),
+                getString(R.string.data_import_csv),
+                getString(R.string.data_shrink)};
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.data_title)
+                .setItems(items, (dialog, which) -> {
+                    String today = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date());
+                    try {
+                        if (which == 0) {
+                            createBackup.launch("model-stash-backup-" + today + ".zip");
+                        } else if (which == 1) {
+                            openBackup.launch(new String[]{"application/zip", "application/x-zip-compressed",
+                                    "application/octet-stream"});
+                        } else if (which == 2) {
+                            createCsv.launch("model-stash-" + today + ".csv");
+                        } else if (which == 3) {
+                            // Some file managers label CSVs as plain text, so accept both.
+                            pickCsv.launch(new String[]{"text/csv", "text/comma-separated-values",
+                                    "text/plain", "*/*"});
+                        } else {
+                            confirmShrink();
+                        }
+                    } catch (ActivityNotFoundException e) {
+                        showImportMessage(getString(R.string.error_no_files_app));
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmShrink() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.shrink_title)
+                .setMessage(R.string.shrink_message)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.shrink_go, (d, w) -> dataTasks.shrinkPhotos())
+                .show();
+    }
+
+    /** "Backing up… 12 of 120" while a job runs; can't be dismissed so a job can't be started twice. */
+    private void showProgress(@Nullable DataTaskViewModel.Progress progress) {
+        if (progress == null) {
+            if (progressDialog != null) {
+                progressDialog.dismiss();
+                progressDialog = null;
+            }
+            return;
+        }
+        if (progressDialog == null) {
+            View view = getLayoutInflater().inflate(R.layout.dialog_progress, null);
+            progressText = view.findViewById(R.id.text_progress);
+            progressDialog = new MaterialAlertDialogBuilder(this)
+                    .setTitle(progress.title)
+                    .setView(view)
+                    .setCancelable(false)
+                    .show();
+        }
+        progressDialog.setTitle(progress.title);
+        if (progressText != null) {
+            progressText.setText(progress.total > 0
+                    ? getString(R.string.task_progress, progress.done, progress.total)
+                    : progress.done > 0 ? getString(R.string.task_progress_count, progress.done) : "");
+        }
+    }
+
+    private void onDataEvent(@Nullable DataTaskViewModel.Event event) {
+        if (event == null || !event.take()) {
+            return;
+        }
+        if (event.kind == DataTaskViewModel.Event.CONFIRM_RESTORE && event.summary != null && event.uri != null) {
+            Uri uri = event.uri;
+            String date = event.summary.createdAt > 0
+                    ? DateFormat.getDateInstance(DateFormat.MEDIUM).format(new Date(event.summary.createdAt))
+                    : getString(R.string.restore_unknown_date);
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.restore_title)
+                    .setMessage(getResources().getQuantityString(R.plurals.restore_message,
+                            event.summary.kits, date, event.summary.kits, event.summary.photos))
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(R.string.restore_go, (d, w) -> dataTasks.restore(uri))
+                    .show();
+            return;
+        }
+        showImportMessage(event.message);
+    }
+
     // ---- CSV import ----
 
     /** Reads the chosen CSV in the background and adds every row it understands. */
@@ -367,6 +624,15 @@ public class MainActivity extends AppCompatActivity {
                         getResources().getQuantityString(R.plurals.import_done, added, added)));
             });
         });
+    }
+
+    /** A short message at the bottom of the home screen (above the + button). */
+    public void showMessage(String message) {
+        Snackbar bar = Snackbar.make(findViewById(R.id.main), message, Snackbar.LENGTH_LONG);
+        if (fab.isShown()) {
+            bar.setAnchorView(fab);
+        }
+        bar.show();
     }
 
     private void showImportMessage(String message) {

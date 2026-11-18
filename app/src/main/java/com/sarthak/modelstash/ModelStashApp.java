@@ -8,11 +8,15 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.sarthak.modelstash.data.ModelRepository;
+import com.sarthak.modelstash.util.AppShortcuts;
+import com.sarthak.modelstash.util.PhotoStorage;
 import com.sarthak.modelstash.util.ThemePrefs;
 
 /**
  * Runs once when the app process starts: applies the saved appearance (dark by
- * default) and gives every screen the same full-screen wipe.
+ * default), gives every screen the same full-screen wipe, publishes the
+ * long-press shortcuts and tidies up photo files nothing uses any more.
  */
 public class ModelStashApp extends Application {
 
@@ -21,6 +25,10 @@ public class ModelStashApp extends Application {
         super.onCreate();
         ThemePrefs.apply(ThemePrefs.get(this));
         registerActivityLifecycleCallbacks(new ScreenWipe());
+        AppShortcuts.publish(this);
+        // Files left behind by an interrupted undo or save. Only ones older than a day,
+        // so a photo on an add screen that is still open is never touched.
+        ModelRepository.get(this).sweepOrphanPhotos(PhotoStorage.folder(this), 24L * 60 * 60 * 1000);
     }
 
     /**

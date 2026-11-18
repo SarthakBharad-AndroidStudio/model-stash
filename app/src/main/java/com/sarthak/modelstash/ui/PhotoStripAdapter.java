@@ -156,6 +156,12 @@ public class PhotoStripAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 }
                 int a = from.getBindingAdapterPosition();
                 int b = to.getBindingAdapterPosition();
+                // While tiles are being added or removed a holder can briefly have no
+                // position (-1); moving then would crash with an index error.
+                if (a == RecyclerView.NO_POSITION || b == RecyclerView.NO_POSITION
+                        || a >= draft.size() || b >= draft.size()) {
+                    return false;
+                }
                 draft.move(a, b);
                 notifyItemMoved(a, b);
                 return true;

@@ -48,6 +48,9 @@ public class BrandsActivity extends AppCompatActivity {
         // Observing rather than loading once, so editing a kit's brand is reflected
         // the moment you come back to this screen. Every brand starts collapsed:
         // the point of the screen is the list of brands, not a wall of kits.
+        // "Deleted … UNDO" when you come back here from deleting a kit.
+        UndoDeleteSnackbar.attach(this, findViewById(R.id.root), null);
+
         ModelRepository.get(this).getAll().observe(this, models -> {
             List<BrandGroups.Group> groups = BrandGroups.from(models);
             adapter.submit(groups);

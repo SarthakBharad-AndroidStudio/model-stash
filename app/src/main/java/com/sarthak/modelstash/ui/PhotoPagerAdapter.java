@@ -17,8 +17,15 @@ import com.sarthak.modelstash.util.PhotoLabel;
 
 import java.io.File;
 
-/** One full-width page per photo, for the swipeable header on the detail screen. */
+/** One full-width page per photo, for the swipeable header on the detail screen. Tap = full screen. */
 public class PhotoPagerAdapter extends ListAdapter<ModelPhoto, PhotoPagerAdapter.PageHolder> {
+
+    public interface OnPhotoClickListener {
+        void onPhotoClick(int position);
+    }
+
+    @androidx.annotation.Nullable
+    private OnPhotoClickListener clickListener;
 
     private static final DiffUtil.ItemCallback<ModelPhoto> DIFF = new DiffUtil.ItemCallback<ModelPhoto>() {
         @Override
@@ -34,6 +41,10 @@ public class PhotoPagerAdapter extends ListAdapter<ModelPhoto, PhotoPagerAdapter
 
     public PhotoPagerAdapter() {
         super(DIFF);
+    }
+
+    public void setOnPhotoClickListener(@androidx.annotation.Nullable OnPhotoClickListener listener) {
+        clickListener = listener;
     }
 
     @NonNull
@@ -55,6 +66,12 @@ public class PhotoPagerAdapter extends ListAdapter<ModelPhoto, PhotoPagerAdapter
                 .centerCrop()
                 .error(R.drawable.ic_image)
                 .into(holder.image);
+        holder.image.setOnClickListener(v -> {
+            int at = holder.getBindingAdapterPosition();
+            if (clickListener != null && at != RecyclerView.NO_POSITION) {
+                clickListener.onPhotoClick(at);
+            }
+        });
     }
 
     static class PageHolder extends RecyclerView.ViewHolder {
