@@ -29,6 +29,7 @@ import com.sarthak.modelstash.R;
 import com.sarthak.modelstash.data.ModelKit;
 import com.sarthak.modelstash.util.BuildStatus;
 import com.sarthak.modelstash.util.Haptics;
+import com.sarthak.modelstash.util.KitSearch;
 import com.sarthak.modelstash.util.ModelSort;
 
 import java.util.List;
@@ -243,12 +244,27 @@ public class CatalogueFragment extends Fragment {
             return;
         }
 
+        // "f14d tomcat" is an exact match for "F-14D Tomcat": case, accents and punctuation don't count.
         boolean exactMatch = false;
         for (ModelKit m : results) {
-            if (m.name.equalsIgnoreCase(query)) {
+            if (KitSearch.sameName(m.name, query)) {
                 exactMatch = true;
                 break;
             }
+        }
+
+        if (!results.isEmpty() && viewModel.showingCloseMatches()) {
+            // Only found by forgiving a typo ("hasegwa"): probably yours, but check.
+            statusText.setText(getResources().getQuantityString(
+                    R.plurals.status_close_matches, results.size(), results.size(), query));
+            statusIcon.setImageResource(R.drawable.ic_search);
+            paintStatus(MaterialColors.getColor(statusCard,
+                            com.google.android.material.R.attr.colorSecondaryContainer),
+                    MaterialColors.getColor(statusCard,
+                            com.google.android.material.R.attr.colorOnSecondaryContainer));
+            statusIcon.setVisibility(View.VISIBLE);
+            addButton.setVisibility(View.VISIBLE);
+            return;
         }
 
         if (results.isEmpty()) {

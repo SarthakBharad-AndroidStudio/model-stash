@@ -48,7 +48,7 @@
     <string name="added_ago">Added %1$s</string>
 
     <!-- Catalogue: search, sort, filter -->
-    <string name="search_hint">Search name, number or brand</string>
+    <string name="search_hint">Search name, brand, number or scale</string>
     <string name="sort_name">A–Z</string>
     <string name="sort_newest">Newest</string>
     <string name="sort_scale">Scale</string>
@@ -63,6 +63,10 @@
     <plurals name="status_partial_matches">
         <item quantity="one">%1$d model matches “%2$s”</item>
         <item quantity="other">%1$d models match “%2$s”</item>
+    </plurals>
+    <plurals name="status_close_matches">
+        <item quantity="one">Did you mean this? %1$d close match for “%2$s”</item>
+        <item quantity="other">Did you mean one of these? %1$d close matches for “%2$s”</item>
     </plurals>
     <string name="add_searched">Add it</string>
 

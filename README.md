@@ -27,6 +27,7 @@ Before you buy a kit, Model Stash answers one question in a second: ***do I alre
 
 | | |
 | --- | --- |
+| 🔎 **Smarter search** | Spaces, hyphens, dots, accents and capitals don't matter: *f14* finds the *F-14D*, *bf109* the *Bf 109*, *skoda* the *Škoda*. Several words work in any order (*hasegawa tomcat*), *1/48* or *1:72* narrows to a scale, and one typo in a longer word is forgiven (*hasegwa* finds *Hasegawa*, shown as *Did you mean…?*). Kit numbers must be exact. |
 | 📄 **Export & import your list** | Save your whole stash and wishlist, with every field, as a spreadsheet (CSV) that opens in Excel, LibreOffice or Google Sheets. Import it back on the same or a new phone; kits you already have are skipped, so importing twice is safe. |
 | 🗜️ **Smaller photos** | New photos are saved at up to 2560 px as they're added (about 0.5 MB instead of 4–8 MB), and turned the right way up. |
 | ⚠️ **"You may already have this kit"** | Saving a kit that matches one in your stash or wishlist (same brand and kit number, or same name at the same scale) asks before adding a duplicate. |
@@ -78,7 +79,8 @@ Download the newer APK from the Releases page and install it over the existing a
 ### 📦 Your stash
 - **Add a kit in seconds:** name, scale, brand, kit number, description and photos. Only the name is required.
 - **One-tap scales:** chips for 1:24, 1:35, 1:48, 1:72, 1:144, 1:350 and 1:700. Typed scales are tidied, so `72`, `1/72` and `1:72` all become `1:72`.
-- **"Do I own it?" search:** the Catalogue searches name, kit number and brand as you type. A card answers clearly: *You own "…"*, *You don't own "…" yet* (with an **Add it** button that pre-fills the name), or how many kits partly match.
+- **"Do I own it?" search:** the Catalogue searches name, brand, kit number and scale as you type. A card answers clearly: *You own "…"*, *You don't own "…" yet* (with an **Add it** button that pre-fills the name), how many kits partly match, or *Did you mean…?* for close matches.
+- **Search that forgives how you type:** spaces, hyphens, dots, accents and capitals are ignored (*f14* finds *F-14D*, *bf109* finds *Bf 109*), words can come in any order (*hasegawa tomcat*), *1/48* or *1:72* narrows to a scale, and a single typo in a word of five letters or more is forgiven (*hasegwa* finds *Hasegawa*), but only when nothing matches as typed. Kit numbers and short words must be exact, so *61115* never turns up kit *61114*.
 - **Duplicate warning:** saving a kit you already have (same brand and kit number, or same name at a matching scale) shows *You may already have this kit*, with **Save anyway**, **Open it** or **Cancel**. A 1/48 and a 1/72 Tomcat count as different kits.
 - **Sorting:** A–Z, Newest or Scale, largest models first.
 - **Multi-select:** hold a card in the Catalogue or Wishlist to start selecting, then tap more. The toolbar turns into *3 selected* with **Select all**, **Set build status**, **Move to stash** (Wishlist) and **Delete**.
@@ -190,7 +192,7 @@ Android's automatic Google backup also saves your kit list and settings, but not
 | **Splash / shortcuts** | AndroidX Core SplashScreen, ShortcutManagerCompat |
 | **Tests** | JUnit 4 (JVM unit tests) and AndroidX instrumented tests |
 
-No new libraries were added in 1.6: CSV, photo resizing and the zoom viewer use plain Java and the Android SDK.
+No new libraries were added in 1.6: CSV, photo resizing, the zoom viewer and the search use plain Java and the Android SDK.
 
 ---
 
@@ -198,7 +200,7 @@ No new libraries were added in 1.6: CSV, photo resizing and the zoom viewer use 
 
 ```mermaid
 flowchart TD
-    UI["Activities & Fragments<br/>Home · Catalogue · Wishlist · Brands · Detail · Viewer · Add/Edit"] --> VM["MainViewModel<br/>(LiveData)"]
+    UI["Activities & Fragments<br/>Home · Catalogue · Wishlist · Brands · Detail · Viewer · Add/Edit"] --> VM["MainViewModel<br/>(LiveData + KitSearch)"]
     UI --> IVM["PhotoImportViewModel<br/>copies & resizes photos"]
     UI --> DVM["DataTaskViewModel<br/>CSV export · import"]
     UI --> REPO[ModelRepository]
@@ -225,6 +227,7 @@ flowchart TD
 - **Long jobs live in ViewModels** (photo copying, CSV export and import), so they keep running and report back when the screen rotates.
 - **Undo delete** keeps the photo files until the undo chance has passed. A tidy-up at start-up removes files that nothing refers to any more, but only ones older than a day.
 - `models.photo_path` always mirrors the cover photo, so every card shows a photo without an extra query.
+- **Search runs in memory** (`KitSearch`): the stash is prepared once whenever it changes, then each keystroke only compares letters and digits, which takes a few milliseconds even for thousands of kits.
 
 ---
 
@@ -248,7 +251,7 @@ app/src/main/java/com/sarthak/modelstash/
 │   ├── ScalematesParser.java    Reads one kit page's title and description
 │   └── ScalematesFetcher.java   Downloads that one page
 ├── ui/
-│   ├── MainViewModel.java
+│   ├── MainViewModel.java       Lists for the tabs; search, stage filter and sort
 │   ├── DashboardFragment.java   Home tab
 │   ├── CatalogueFragment.java   Search, sort, stage filter, "do I own it?", multi-select
 │   ├── WishlistFragment.java    Wishlist, multi-select
@@ -268,6 +271,7 @@ app/src/main/java/com/sarthak/modelstash/
     ├── BuildStatus.java, PhotoLabel.java, PhotoDraft.java
     ├── ScaleFormat.java, ModelSort.java, StashStats.java, BrandGroups.java
     ├── CsvImport.java, CsvExport.java, CsvTable.java
+    ├── KitSearch.java           The Catalogue search (punctuation, accents, scale, typos)
     ├── DuplicateFinder.java, FormSnapshot.java
     ├── PhotoStorage.java, PhotoCompressor.java, ImageSizing.java
     ├── AppShortcuts.java
@@ -332,14 +336,14 @@ Scalemates has no public API. Its `robots.txt` blocks automated access to search
 
 | Version | Date | Notes |
 | :---: | :---: | --- |
-| [**1.6**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.6) | November 2026 | Export & import your whole list as CSV, smaller photos, duplicate warning, *Discard changes?*, full-screen photo viewer with zoom, undo delete, app icon shortcuts, multi-select, and a fix for crashes when adding several photos from the gallery. |
+| [**1.6**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.6) | November 2026 | Smarter search (ignores punctuation and accents, several words, scales, forgives a typo), export & import your whole list as CSV, smaller photos, duplicate warning, *Discard changes?*, full-screen photo viewer with zoom, undo delete, app icon shortcuts, multi-select, and a fix for crashes when adding several photos from the gallery. |
 | [**1.5**](https://github.com/SarthakBharad-AndroidStudio/model-stash/releases/tag/v1.5) | November 2026 | First public release on GitHub: catalogue, wishlist, build status, photo carousel with labels, Scalemates link import, CSV import, Midnight and Paper themes. |
 
 ---
 
 ## 🧪 Tests
 
-**JVM unit tests** (no phone needed) cover the logic: scale parsing, Scalemates page parsing, stats and sorting, the CSV exporter and importer (round trip of every field, common column spellings, old four-column files, skipping kits you already have), the duplicate rules, the unsaved-changes check, photo sizing, and the photo list (six-photo limit, cover, reordering, labels).
+**JVM unit tests** (no phone needed) cover the logic: the search (punctuation, accents, several words, scales, typos, and what must stay exact), scale parsing, Scalemates page parsing, stats and sorting, the CSV exporter and importer (round trip of every field, common column spellings, old four-column files, skipping kits you already have), the duplicate rules, the unsaved-changes check, photo sizing, and the photo list (six-photo limit, cover, reordering, labels).
 
 In Android Studio, right-click `app/src/test/java` → **Run 'Tests in …'**, or from the terminal:
 

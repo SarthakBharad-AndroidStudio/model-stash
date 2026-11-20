@@ -13,6 +13,7 @@ import androidx.lifecycle.Transformations;
 import com.sarthak.modelstash.data.ModelKit;
 import com.sarthak.modelstash.data.ModelRepository;
 import com.sarthak.modelstash.util.BuildStatus;
+import com.sarthak.modelstash.util.KitSearch;
 import com.sarthak.modelstash.util.ModelSort;
 import com.sarthak.modelstash.util.StashStats;
 
@@ -47,6 +48,11 @@ public class MainViewModel extends AndroidViewModel {
     /** Search results in the chosen sort order; updates when the table, query or sort changes. */
     public final LiveData<List<ModelKit>> visibleModels;
 
+    /** Your stash, prepared for searching; rebuilt only when the stash itself changes. */
+    private KitSearch.Index searchIndex = KitSearch.Index.EMPTY;
+    /** true = visibleModels holds close (typo-tolerant) matches, nothing matched as typed. */
+    private boolean closeMatches;
+
     public MainViewModel(@NonNull Application application) {
         super(application);
         ModelRepository repository = ModelRepository.get(application);
@@ -57,13 +63,25 @@ public class MainViewModel extends AndroidViewModel {
         wishlist = repository.getWishlist();
         wishlistCount = repository.wishlistCount();
 
-        // What the grid shows = search results, narrowed to one build stage, then sorted.
-        // Three inputs, one output: whichever changes, the whole chain is re-run.
-        LiveData<List<ModelKit>> results = Transformations.switchMap(query, q -> repository.search(q));
+        // What the grid shows = search results (see KitSearch), narrowed to one build
+        // stage, then sorted. Whichever input changes, the chain is re-run; the search
+        // index is only rebuilt when the kits themselves change, not on every keystroke.
+        LiveData<List<ModelKit>> owned = repository.getAll();
         MediatorLiveData<List<ModelKit>> shown = new MediatorLiveData<>();
-        Runnable rebuild = () -> shown.setValue(ModelSort.sorted(
-                atStage(results.getValue(), statusFilter.getValue()), sortMode.getValue()));
-        shown.addSource(results, list -> rebuild.run());
+        Runnable rebuild = () -> {
+            if (owned.getValue() == null) {
+                return; // not loaded yet: show nothing rather than "You own 0 models"
+            }
+            KitSearch.Result found = searchIndex.search(getQuery());
+            closeMatches = found.close;
+            shown.setValue(ModelSort.sorted(
+                    atStage(found.kits, statusFilter.getValue()), sortMode.getValue()));
+        };
+        shown.addSource(owned, list -> {
+            searchIndex = new KitSearch.Index(list);
+            rebuild.run();
+        });
+        shown.addSource(query, q -> rebuild.run());
         shown.addSource(sortMode, mode -> rebuild.run());
         shown.addSource(statusFilter, status -> rebuild.run());
         visibleModels = shown;
@@ -81,6 +99,14 @@ public class MainViewModel extends AndroidViewModel {
     /** The Catalogue did it; don't do it again after a rotation. */
     public void searchFocused() {
         focusSearch.setValue(false);
+    }
+
+    /**
+     * true when the kits on screen are only close matches: nothing matched the
+     * search as typed, but allowing one wrong letter did ("hasegwa" → Hasegawa).
+     */
+    public boolean showingCloseMatches() {
+        return closeMatches;
     }
 
     public void setQuery(String newQuery) {

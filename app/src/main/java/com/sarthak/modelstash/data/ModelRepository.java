@@ -76,14 +76,6 @@ public class ModelRepository {
         return dao.count();
     }
 
-    /** All models when the query is blank, otherwise models whose name contains it. */
-    public LiveData<List<ModelKit>> search(@Nullable String query) {
-        if (query == null || query.trim().isEmpty()) {
-            return dao.getAll();
-        }
-        return dao.searchByName(escapeLike(query.trim()));
-    }
-
     public LiveData<ModelKit> observe(long id) {
         return dao.observeById(id);
     }
@@ -377,10 +369,5 @@ public class ModelRepository {
                 mainThread.post(onDone);
             }
         });
-    }
-
-    /** Makes %, _ and \ in the user's text match literally inside LIKE '%...%'. */
-    static String escapeLike(String text) {
-        return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }
